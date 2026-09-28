@@ -1,0 +1,157 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Comum">
+      <UniqueIdentifier>4aaa2481-d3ec-4d21-8895-dfbd9ca2f38d</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Ativos">
+      <UniqueIdentifier>ee601dcc-6c2a-44cf-a317-6c821555c0d5</UniqueIdentifier>
+      <Extensions>bmp;fbx;gif;jpg;jpeg;tga;tiff;tif;png</Extensions>
+    </Filter>
+    <Filter Include="Conteúdo">
+      <UniqueIdentifier>2952ed0b-da1a-4447-97f4-ed6187874bf3</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Diagnóstico">
+      <UniqueIdentifier>5db354f2-f1c3-42b7-bb0e-1672e6d0de5d</UniqueIdentifier>
+    </Filter>
+    <ClInclude Include="Common\DirectXHelper.h">
+      <Filter>Comum</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\StepTimer.h">
+      <Filter>Comum</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\DeviceResources.h">
+      <Filter>Comum</Filter>
+    </ClInclude>
+    <ClCompile Include="Common\DeviceResources.cpp">
+      <Filter>Comum</Filter>
+    </ClCompile>
+    <ClInclude Include="Diagnostics\DiagnosticReport.h">
+      <Filter>Diagnóstico</Filter>
+    </ClInclude>
+    <ClInclude Include="Diagnostics\CpuDiagnostics.h">
+      <Filter>Diagnóstico</Filter>
+    </ClInclude>
+	<ClInclude Include="Diagnostics\ComActivationDiagnostics.h">
+	  <Filter>Diagnóstico</Filter>
+	</ClInclude>
+	<ClInclude Include="Diagnostics\DirectMlDiagnostics.h">
+	  <Filter>Diagnóstico</Filter>
+	</ClInclude>
+    <ClInclude Include="Diagnostics\MemoryDiagnostics.h">
+      <Filter>Diagnóstico</Filter>
+    </ClInclude>
+    <ClInclude Include="Diagnostics\ExceptionDiagnostics.h">
+      <Filter>Diagnóstico</Filter>
+    </ClInclude>
+    <ClInclude Include="Diagnostics\WhpxDiagnostics.h">
+      <Filter>Diagnóstico</Filter>
+    </ClInclude>
+    <ClInclude Include="Diagnostics\MappingDiagnostics.h">
+      <Filter>Diagnóstico</Filter>
+    </ClInclude>
+    <ClInclude Include="Diagnostics\TimerSyncDiagnostics.h">
+      <Filter>Diagnóstico</Filter>
+    </ClInclude>
+	<ClInclude Include="Diagnostics\ThreadDiagnostics.h">
+	  <Filter>Diagnóstico</Filter>
+	</ClInclude>
+    <ClInclude Include="Diagnostics\FileSystemDiagnostics.h">
+      <Filter>Diagnóstico</Filter>
+    </ClInclude>
+	<ClInclude Include="Diagnostics\HyperVWmiDiagnostics.h">
+	  <Filter>Diagnóstico</Filter>
+	</ClInclude>
+	<ClInclude Include="Diagnostics\VmComputeDiagnostics.h">
+	  <Filter>Diagnóstico</Filter>
+	</ClInclude>
+    <ClCompile Include="Diagnostics\DiagnosticReport.cpp">
+      <Filter>Diagnóstico</Filter>
+    </ClCompile>
+    <ClCompile Include="Diagnostics\CpuDiagnostics.cpp">
+      <Filter>Diagnóstico</Filter>
+    </ClCompile>
+	<ClCompile Include="Diagnostics\ComActivationDiagnostics.cpp">
+	  <Filter>Diagnóstico</Filter>
+	</ClCompile>
+	<ClCompile Include="Diagnostics\DirectMlDiagnostics.cpp">
+	  <Filter>Diagnóstico</Filter>
+	</ClCompile>
+    <ClCompile Include="Diagnostics\MemoryDiagnostics.cpp">
+      <Filter>Diagnóstico</Filter>
+    </ClCompile>
+    <ClCompile Include="Diagnostics\ExceptionDiagnostics.cpp">
+      <Filter>Diagnóstico</Filter>
+    </ClCompile>
+    <ClCompile Include="Diagnostics\WhpxDiagnostics.cpp">
+      <Filter>Diagnóstico</Filter>
+    </ClCompile>
+    <ClCompile Include="Diagnostics\MappingDiagnostics.cpp">
+      <Filter>Diagnóstico</Filter>
+    </ClCompile>
+    <ClCompile Include="Diagnostics\TimerSyncDiagnostics.cpp">
+      <Filter>Diagnóstico</Filter>
+    </ClCompile>
+	<ClCompile Include="Diagnostics\ThreadDiagnostics.cpp">
+	  <Filter>Diagnóstico</Filter>
+	</ClCompile>
+    <ClCompile Include="Diagnostics\FileSystemDiagnostics.cpp">
+      <Filter>Diagnóstico</Filter>
+    </ClCompile>
+	<ClCompile Include="Diagnostics\HyperVWmiDiagnostics.cpp">
+	  <Filter>Diagnóstico</Filter>
+	</ClCompile>
+	<ClCompile Include="Diagnostics\VmComputeDiagnostics.cpp">
+	  <Filter>Diagnóstico</Filter>
+	</ClCompile>
+    <ClInclude Include="Content\SampleFpsTextRenderer.h">
+      <Filter>Conteúdo</Filter>
+    </ClInclude>
+    <ClCompile Include="Content\SampleFpsTextRenderer.cpp">
+      <Filter>Conteúdo</Filter>
+    </ClCompile>
+    <Image Include="Assets\LockScreenLogo.scale-200.png">
+      <Filter>Ativos</Filter>
+    </Image>
+    <Image Include="Assets\SplashScreen.scale-200.png">
+      <Filter>Ativos</Filter>
+    </Image>
+    <Image Include="Assets\Square150x150Logo.scale-200.png">
+      <Filter>Ativos</Filter>
+    </Image>
+    <Image Include="Assets\Square44x44Logo.scale-200.png">
+      <Filter>Ativos</Filter>
+    </Image>
+    <Image Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png">
+      <Filter>Ativos</Filter>
+    </Image>
+    <Image Include="Assets\Wide310x150Logo.scale-200.png">
+      <Filter>Ativos</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ApplicationDefinition Include="App.xaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Teste_HWMain.cpp" />
+    <ClCompile Include="pch.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Teste_HWMain.h" />
+    <ClInclude Include="pch.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Assets\StoreLogo.png">
+      <Filter>Ativos</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <AppxManifest Include="Package.appxmanifest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="DirectXPage.xaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Teste-HW_TemporaryKey.pfx" />
+  </ItemGroup>
+</Project>

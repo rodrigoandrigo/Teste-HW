@@ -1,0 +1,88 @@
+﻿<Page
+    x:Class="Teste_HW.DirectXPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Teste_HW"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+  <Grid>
+    <SwapChainPanel x:Name="swapChainPanel" />
+
+    <Grid Margin="24" Background="#DD101820">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+
+      <TextBlock Text="Teste-HW — Diagnóstico do AppContainer"
+                 Margin="16,12,16,4"
+                 FontSize="26"
+                 FontWeight="SemiBold" />
+      <TextBlock x:Name="reportStatusText"
+                 Grid.Row="1"
+                 Margin="16,0,16,10"
+                 Text="Inicializando infraestrutura de resultados..."
+                 TextWrapping="Wrap" />
+      <TextBox x:Name="reportTextBox"
+               Grid.Row="2"
+               Margin="16,0,16,16"
+               IsReadOnly="True"
+               AcceptsReturn="True"
+               TextWrapping="NoWrap"
+               FontFamily="Consolas"
+               FontSize="14"
+               ScrollViewer.VerticalScrollBarVisibility="Auto"
+               ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+    </Grid>
+  </Grid>
+
+  <Page.BottomAppBar>
+    <AppBar x:Name="bottomAppBar" Padding="10,0,10,0">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+        <AppBarButton Label="Testar CPU"
+                      Icon="Play"
+                      Click="RunCpuTests_Click" />
+        <AppBarButton Label="Testar COM/APIs"
+                      Icon="Play"
+                      Click="RunComActivationTests_Click" />
+        <AppBarButton Label="Testar DirectML"
+                      Icon="Play"
+                      Click="RunDirectMlTests_Click" />
+        <AppBarButton Label="Testar memória/JIT"
+                      Icon="Play"
+                      Click="RunMemoryTests_Click" />
+        <AppBarButton Label="Testar exceções"
+                      Icon="Play"
+                      Click="RunExceptionTests_Click" />
+        <AppBarButton Label="Testar virtualização"
+                      Icon="Play"
+                      Click="RunWhpxTests_Click" />
+        <AppBarButton Label="Testar mappings"
+                      Icon="Play"
+                      Click="RunMappingTests_Click" />
+        <AppBarButton Label="Testar timers/sync"
+                      Icon="Play"
+                      Click="RunTimerSyncTests_Click" />
+        <AppBarButton Label="Testar threads/SMP"
+                      Icon="Play"
+                      Click="RunThreadTests_Click" />
+        <AppBarButton Label="Testar filesystem/I/O"
+                      Icon="Play"
+                      Click="RunFileSystemTests_Click" />
+        <AppBarButton Label="Exportar TXT"
+                      Icon="Save"
+                      Click="ExportText_Click" />
+        <AppBarButton Label="Exportar JSON"
+                      Icon="Save"
+                      Click="ExportJson_Click" />
+        <AppBarButton Label="Limpar"
+                      Icon="Delete"
+                      Click="ClearResults_Click" />
+      </StackPanel>
+    </AppBar>
+  </Page.BottomAppBar>
+</Page>
