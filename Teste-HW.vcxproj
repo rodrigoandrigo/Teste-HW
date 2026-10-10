@@ -213,12 +213,14 @@
     <ClInclude Include="Common\DirectXHelper.h" />
     <ClInclude Include="Common\StepTimer.h" />
     <ClInclude Include="Diagnostics\CpuDiagnostics.h" />
+	<ClInclude Include="Diagnostics\AmdVDiagnostics.h" />
 	<ClInclude Include="Diagnostics\ComActivationDiagnostics.h" />
 	<ClInclude Include="Diagnostics\DirectMlDiagnostics.h" />
     <ClInclude Include="Diagnostics\DiagnosticReport.h" />
 	<ClInclude Include="Diagnostics\ExceptionDiagnostics.h" />
 	<ClInclude Include="Diagnostics\FileSystemDiagnostics.h" />
 	<ClInclude Include="Diagnostics\HyperVWmiDiagnostics.h" />
+	<ClInclude Include="Diagnostics\KvmDiagnostics.h" />
     <ClInclude Include="Diagnostics\MemoryDiagnostics.h" />
 	<ClInclude Include="Diagnostics\MappingDiagnostics.h" />
 	<ClInclude Include="Diagnostics\TimerSyncDiagnostics.h" />
@@ -234,12 +236,14 @@
     </ClCompile>
     <ClCompile Include="Common\DeviceResources.cpp" />
     <ClCompile Include="Diagnostics\CpuDiagnostics.cpp" />
+	<ClCompile Include="Diagnostics\AmdVDiagnostics.cpp" />
 	<ClCompile Include="Diagnostics\ComActivationDiagnostics.cpp" />
 	<ClCompile Include="Diagnostics\DirectMlDiagnostics.cpp" />
     <ClCompile Include="Diagnostics\DiagnosticReport.cpp" />
 	<ClCompile Include="Diagnostics\ExceptionDiagnostics.cpp" />
 	<ClCompile Include="Diagnostics\FileSystemDiagnostics.cpp" />
 	<ClCompile Include="Diagnostics\HyperVWmiDiagnostics.cpp" />
+	<ClCompile Include="Diagnostics\KvmDiagnostics.cpp" />
     <ClCompile Include="Diagnostics\MemoryDiagnostics.cpp" />
 	<ClCompile Include="Diagnostics\MappingDiagnostics.cpp" />
 	<ClCompile Include="Diagnostics\TimerSyncDiagnostics.cpp" />

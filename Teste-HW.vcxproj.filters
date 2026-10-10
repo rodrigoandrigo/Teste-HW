@@ -32,6 +32,9 @@
     <ClInclude Include="Diagnostics\CpuDiagnostics.h">
       <Filter>Diagnóstico</Filter>
     </ClInclude>
+	<ClInclude Include="Diagnostics\AmdVDiagnostics.h">
+	  <Filter>Diagnóstico</Filter>
+	</ClInclude>
 	<ClInclude Include="Diagnostics\ComActivationDiagnostics.h">
 	  <Filter>Diagnóstico</Filter>
 	</ClInclude>
@@ -62,6 +65,9 @@
 	<ClInclude Include="Diagnostics\HyperVWmiDiagnostics.h">
 	  <Filter>Diagnóstico</Filter>
 	</ClInclude>
+	<ClInclude Include="Diagnostics\KvmDiagnostics.h">
+	  <Filter>Diagnóstico</Filter>
+	</ClInclude>
 	<ClInclude Include="Diagnostics\VmComputeDiagnostics.h">
 	  <Filter>Diagnóstico</Filter>
 	</ClInclude>
@@ -71,6 +77,9 @@
     <ClCompile Include="Diagnostics\CpuDiagnostics.cpp">
       <Filter>Diagnóstico</Filter>
     </ClCompile>
+	<ClCompile Include="Diagnostics\AmdVDiagnostics.cpp">
+	  <Filter>Diagnóstico</Filter>
+	</ClCompile>
 	<ClCompile Include="Diagnostics\ComActivationDiagnostics.cpp">
 	  <Filter>Diagnóstico</Filter>
 	</ClCompile>
@@ -99,6 +108,9 @@
       <Filter>Diagnóstico</Filter>
     </ClCompile>
 	<ClCompile Include="Diagnostics\HyperVWmiDiagnostics.cpp">
+	  <Filter>Diagnóstico</Filter>
+	</ClCompile>
+	<ClCompile Include="Diagnostics\KvmDiagnostics.cpp">
 	  <Filter>Diagnóstico</Filter>
 	</ClCompile>
 	<ClCompile Include="Diagnostics\VmComputeDiagnostics.cpp">

@@ -247,7 +247,7 @@ void DirectXPage::RunExceptionTests_Click(Object^ sender, RoutedEventArgs^ e)
 
 void DirectXPage::RunWhpxTests_Click(Object^ sender, RoutedEventArgs^ e)
 {
-	reportStatusText->Text = L"Executando WHPX, vmcompute e Hyper-V WMI em background...";
+	reportStatusText->Text = L"Executando WHPX, AMD-V, KVM, vmcompute e Hyper-V WMI em background...";
 	concurrency::create_task([]()
 	{
 		std::vector<Diagnostics::DiagnosticResult> combined;
@@ -257,6 +257,8 @@ void DirectXPage::RunWhpxTests_Click(Object^ sender, RoutedEventArgs^ e)
 				combined.push_back(std::move(result));
 		};
 		append(Diagnostics::WhpxDiagnostics::Run());
+		append(Diagnostics::AmdVDiagnostics::Run());
+		append(Diagnostics::KvmDiagnostics::Run());
 		append(Diagnostics::VmComputeDiagnostics::Run());
 		append(Diagnostics::HyperVWmiDiagnostics::Run());
 		return combined;

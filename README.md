@@ -56,6 +56,35 @@ The package declares the UWP `codeGeneration` capability.
 
 ### Virtualization
 
+#### AMD-V / AMD SVM
+
+The AMD-V probe reads the SVM capability leaves exposed by CPUID and records
+the VMCB revision, ASID count, and feature flags when available. It also emits
+and executes `VMRUN`, `VMLOAD`, `VMSAVE`, `STGI`, `CLGI`, `SKINIT`, and
+`INVLPGA` under structured exception handling. This distinguishes CPU feature
+advertisement from direct instruction accessibility inside the AppContainer.
+
+On the tested Xbox Series S AppContainer, CPUID did not advertise SVM. Leaf
+`0x8000000A` was readable but returned a zero VMCB revision, zero ASIDs, and no
+SVM feature flags. Every tested SVM instruction was blocked with
+`EXCEPTION_ACCESS_VIOLATION` (`0xC0000005`). The generated-code pages themselves
+were executable, so this result represents the virtualization boundary rather
+than a failure of the JIT allocation path.
+
+#### KVM
+
+KVM is a Linux kernel interface rather than a native Windows virtualization
+API. The KVM probe searches for explicit Windows device bridges at known KVM
+device names and records the exact Win32 result. If a bridge opens, it performs
+an experimental `KVM_GET_API_VERSION` request. A DLL name is not treated as
+evidence of KVM availability.
+
+The current probe checks `\\.\KVM`, `\\.\Global\KVM`, and
+`\\?\GLOBALROOT\Device\KVM`. On the tested console all three returned Win32
+error 2 (`ERROR_FILE_NOT_FOUND`), indicating that no KVM device bridge was
+present in the device namespace visible to the package. This is different from
+finding a device that exists but returns `ERROR_ACCESS_DENIED`.
+
 #### Windows Hypervisor Platform
 
 The WHPX probe dynamically loads `WinHvPlatform.dll` and, when available, attempts the complete minimum chain:
@@ -244,8 +273,22 @@ Reports produced during development on an Xbox Series S have shown that:
 - Structured exceptions, guard pages, and access-violation recovery work.
 - File mappings, executable views, affinity, priorities, and SMP execution work.
 - D3D12 device creation works.
+- AMD SVM is masked from CPUID: the SVM bit is clear and leaf `0x8000000A`
+  reports zero revision, zero ASIDs, and zero feature flags.
+- Direct probes of `VMRUN`, `VMLOAD`, `VMSAVE`, `STGI`, `CLGI`, `SKINIT`, and
+  `INVLPGA` are blocked and delivered to the process as
+  `EXCEPTION_ACCESS_VIOLATION` (`0xC0000005`).
+- No KVM bridge is exposed at `\\.\KVM`, `\\.\Global\KVM`, or
+  `\\?\GLOBALROOT\Device\KVM`; all tested paths return
+  `ERROR_FILE_NOT_FOUND`.
 - WHPX, `vmcompute.dll`, and Hyper-V WMI are not accessible through the tested paths.
 - The system `DirectML.dll` is not loadable through the tested AppContainer path.
+
+Taken together, the tested hardware-virtualization routes—direct AMD-V, KVM,
+WHPX, Host Compute Service, and Hyper-V WMI—are unavailable to this
+AppContainer. A Linux runtime on this platform therefore needs a user-mode
+interpreter or dynamic binary translator, software MMU and privileged-instruction
+modeling, and native threads for guest SMP.
 
 These observations are device-, OS-, package-, and configuration-specific. Re-run the probes after system updates or manifest changes instead of treating them as permanent platform guarantees.
 
