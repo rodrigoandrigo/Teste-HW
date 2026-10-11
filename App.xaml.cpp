@@ -1,4 +1,4 @@
-﻿//
+//
 // App.xaml.cpp
 // Implementação da classe App.
 //
@@ -29,8 +29,6 @@ using namespace Windows::UI::Xaml::Navigation;
 App::App()
 {
 	InitializeComponent();
-	Suspending += ref new SuspendingEventHandler(this, &App::OnSuspending);
-	Resuming += ref new EventHandler<Object^>(this, &App::OnResuming);
 }
 
 /// <summary>
@@ -41,12 +39,12 @@ App::App()
 /// <param name="e">Detalhes sobre a solicitação e o processo de inicialização.</param>
 void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEventArgs^ e)
 {
-#if _DEBUG
-	if (IsDebuggerPresent())
+	DebugSettings->EnableFrameRateCounter = false;
+	if (Windows::Foundation::Metadata::ApiInformation::IsTypePresent(
+		L"Windows.UI.ViewManagement.ApplicationViewScaling"))
 	{
-		DebugSettings->EnableFrameRateCounter = true;
+		Windows::UI::ViewManagement::ApplicationViewScaling::TrySetDisableLayoutScaling(true);
 	}
-#endif
 
 	auto rootFrame = dynamic_cast<Frame^>(Window::Current->Content);
 
@@ -72,47 +70,9 @@ void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEvent
 		rootFrame->Navigate(TypeName(DirectXPage::typeid), e->Arguments);
 	}
 
-	if (m_directXPage == nullptr)
-	{
-		m_directXPage = dynamic_cast<DirectXPage^>(rootFrame->Content);
-	}
-
-	if (e->PreviousExecutionState == ApplicationExecutionState::Terminated)
-	{
-		m_directXPage->LoadInternalState(ApplicationData::Current->LocalSettings->Values);
-	}
-	
 	// Verifique se a janela atual está ativa
 	Window::Current->Activate();
 }
-/// <summary>
-/// Chamado quando a execução do aplicativo está sendo suspensa.  O estado do aplicativo é salvo
-/// sem saber se o aplicativo será encerrado ou retomado com o conteúdo
-/// da memória ainda intacto.
-/// </summary>
-/// <param name="sender">A fonte da solicitação de suspensão.</param>
-/// <param name="e">Detalhes sobre a solicitação de suspensão.</param>
-void App::OnSuspending(Object^ sender, SuspendingEventArgs^ e)
-{
-	(void) sender;	// Parâmetro não usado
-	(void) e;	// Parâmetro não usado
-
-	m_directXPage->SaveInternalState(ApplicationData::Current->LocalSettings->Values);
-}
-
-/// <summary>
-/// Invocado quando a execução do aplicativo é retomada.
-/// </summary>
-/// <param name="sender">A origem da solicitação de retomada.</param>
-/// <param name="args">Detalhes sobre a solicitação de retomada.</param>
-void App::OnResuming(Object ^sender, Object ^args)
-{
-	(void) sender; // Parâmetro não usado
-	(void) args; // Parâmetro não usado
-
-	m_directXPage->LoadInternalState(ApplicationData::Current->LocalSettings->Values);
-}
-
 /// <summary>
 /// Chamado quando ocorre uma falha na Navegação para uma determinada página
 /// </summary>
@@ -122,4 +82,3 @@ void App::OnNavigationFailed(Platform::Object ^sender, Windows::UI::Xaml::Naviga
 {
 	throw ref new FailureException("Failed to load Page " + e->SourcePageType.Name);
 }
-

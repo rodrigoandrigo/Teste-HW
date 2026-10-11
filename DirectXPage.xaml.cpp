@@ -1,4 +1,4 @@
-﻿//
+//
 // DirectXPage.xaml.cpp
 // Implementação da classe DirectXPage.
 //
@@ -24,41 +24,9 @@ using namespace Windows::UI::Xaml::Media;
 using namespace Windows::UI::Xaml::Navigation;
 using namespace concurrency;
 
-DirectXPage::DirectXPage():
-	m_windowVisible(true)
+DirectXPage::DirectXPage()
 {
 	InitializeComponent();
-
-	// Registre manipuladores de eventos para o ciclo de vida da página.
-	CoreWindow^ window = Window::Current->CoreWindow;
-
-	window->VisibilityChanged +=
-		ref new TypedEventHandler<CoreWindow^, VisibilityChangedEventArgs^>(this, &DirectXPage::OnVisibilityChanged);
-
-	DisplayInformation^ currentDisplayInformation = DisplayInformation::GetForCurrentView();
-
-	currentDisplayInformation->DpiChanged +=
-		ref new TypedEventHandler<DisplayInformation^, Object^>(this, &DirectXPage::OnDpiChanged);
-
-	currentDisplayInformation->OrientationChanged +=
-		ref new TypedEventHandler<DisplayInformation^, Object^>(this, &DirectXPage::OnOrientationChanged);
-
-	DisplayInformation::DisplayContentsInvalidated +=
-		ref new TypedEventHandler<DisplayInformation^, Object^>(this, &DirectXPage::OnDisplayContentsInvalidated);
-
-	swapChainPanel->CompositionScaleChanged += 
-		ref new TypedEventHandler<SwapChainPanel^, Object^>(this, &DirectXPage::OnCompositionScaleChanged);
-
-	swapChainPanel->SizeChanged +=
-		ref new SizeChangedEventHandler(this, &DirectXPage::OnSwapChainPanelSizeChanged);
-
-	// Neste ponto, temos acesso ao dispositivo. 
-	// É possível criar recursos dependentes do dispositivo.
-	m_deviceResources = std::make_shared<DX::DeviceResources>();
-	m_deviceResources->SetSwapChainPanel(swapChainPanel);
-
-	m_main = std::unique_ptr<Teste_HWMain>(new Teste_HWMain(m_deviceResources));
-	m_main->StartRenderLoop();
 
 	m_diagnosticReport = std::make_shared<Diagnostics::DiagnosticReport>();
 	Diagnostics::DiagnosticResult initialized;
@@ -69,74 +37,6 @@ DirectXPage::DirectXPage():
 	initialized.details = L"Future hardware tests can record status, duration, HRESULT and Win32 error in this report.";
 	m_diagnosticReport->Add(std::move(initialized));
 	RefreshReportView();
-}
-
-DirectXPage::~DirectXPage()
-{
-	// Interrompa a renderização em destruição.
-	m_main->StopRenderLoop();
-}
-
-// Salva o estado atual do aplicativo para eventos de suspensão e de encerramento.
-void DirectXPage::SaveInternalState(IPropertySet^ state)
-{
-	critical_section::scoped_lock lock(m_main->GetCriticalSection());
-	m_deviceResources->Trim();
-
-	// Interrompa a renderização quando o aplicativo for suspenso.
-	m_main->StopRenderLoop();
-
-	// Coloque aqui o código para salvar o estado do aplicativo.
-}
-
-// Carrega o estado atual do aplicativo para eventos de retomada.
-void DirectXPage::LoadInternalState(IPropertySet^ state)
-{
-	// Coloque aqui o código para carregar o estado do aplicativo.
-
-	// Inicie a renderização quando o aplicativo for retomado.
-	m_main->StartRenderLoop();
-}
-
-// Manipuladores de eventos da janela.
-
-void DirectXPage::OnVisibilityChanged(CoreWindow^ sender, VisibilityChangedEventArgs^ args)
-{
-	m_windowVisible = args->Visible;
-	if (m_windowVisible)
-	{
-		m_main->StartRenderLoop();
-	}
-	else
-	{
-		m_main->StopRenderLoop();
-	}
-}
-
-// Manipuladores de eventos DisplayInformation.
-
-void DirectXPage::OnDpiChanged(DisplayInformation^ sender, Object^ args)
-{
-	critical_section::scoped_lock lock(m_main->GetCriticalSection());
-	// Observação: o valor de LogicalDpi recuperado aqui pode não corresponder à DPI efetiva do aplicativo
-	// se ele está sendo escalado para dispositivos de alta resolução. Depois que o DPI é definido em DeviceResources,
-	// você sempre deve recuperá-la usando o método GetDpi.
-	// Consulte DeviceResources.cpp para obter mais detalhes.
-	m_deviceResources->SetDpi(sender->LogicalDpi);
-	m_main->CreateWindowSizeDependentResources();
-}
-
-void DirectXPage::OnOrientationChanged(DisplayInformation^ sender, Object^ args)
-{
-	critical_section::scoped_lock lock(m_main->GetCriticalSection());
-	m_deviceResources->SetCurrentOrientation(sender->CurrentOrientation);
-	m_main->CreateWindowSizeDependentResources();
-}
-
-void DirectXPage::OnDisplayContentsInvalidated(DisplayInformation^ sender, Object^ args)
-{
-	critical_section::scoped_lock lock(m_main->GetCriticalSection());
-	m_deviceResources->ValidateDevice();
 }
 
 void DirectXPage::RefreshReportView()
@@ -221,6 +121,68 @@ void DirectXPage::RunDirectMlTests_Click(Object^ sender, RoutedEventArgs^ e)
 			reportStatusText->Text = L"Falha nativa inesperada durante os testes DirectML.";
 		}
 	}, concurrency::task_continuation_context::use_current());
+}
+
+void DirectXPage::RunXessTests_Click(Object^ sender, RoutedEventArgs^ e)
+{
+	reportStatusText->Text = L"Executando testes Intel XeSS-SR em background...";
+	concurrency::create_task([]()
+	{
+		return Diagnostics::XessDiagnostics::Run();
+	}).then([this](concurrency::task<std::vector<Diagnostics::DiagnosticResult>> completed)
+	{
+		try
+		{
+			auto results = completed.get();
+			for (auto& result : results)
+				m_diagnosticReport->Add(std::move(result));
+			RefreshReportView();
+		}
+		catch (Platform::Exception^ exception)
+		{
+			reportStatusText->Text = L"Falha ao executar os testes XeSS: " + exception->Message;
+		}
+		catch (...)
+		{
+			reportStatusText->Text = L"Falha nativa inesperada durante os testes XeSS.";
+		}
+	}, concurrency::task_continuation_context::use_current());
+}
+
+void DirectXPage::RunXellTests_Click(Object^ sender, RoutedEventArgs^ e)
+{
+    RunIntelLatencyFgTests(false);
+}
+
+void DirectXPage::RunXessFgTests_Click(Object^ sender, RoutedEventArgs^ e)
+{
+    RunIntelLatencyFgTests(true);
+}
+
+void DirectXPage::RunIntelLatencyFgTests(bool frameGeneration)
+{
+    reportStatusText->Text = L"Executando testes Intel XeLL/XeSS-FG em background...";
+    concurrency::create_task([frameGeneration]()
+    {
+        return frameGeneration ? Diagnostics::IntelLatencyFgDiagnostics::RunFrameGeneration() :
+            Diagnostics::IntelLatencyFgDiagnostics::RunLowLatency();
+    }).then([this](concurrency::task<std::vector<Diagnostics::DiagnosticResult>> completed)
+    {
+        try
+        {
+            auto results = completed.get();
+            for (auto& result : results) m_diagnosticReport->Add(std::move(result));
+            RefreshReportView();
+        }
+        catch (Platform::Exception^ exception)
+        {
+            reportStatusText->Text = L"Falha nos testes XeLL/XeSS-FG: " + exception->Message;
+        }
+        catch (...)
+        {
+            reportStatusText->Text = L"Falha nativa inesperada nos testes XeLL/XeSS-FG.";
+        }
+    }, concurrency::task_continuation_context::use_current());
 }
 
 void DirectXPage::RunMemoryTests_Click(Object^ sender, RoutedEventArgs^ e)
@@ -382,18 +344,4 @@ void DirectXPage::ClearResults_Click(Object^ sender, RoutedEventArgs^ e)
 {
 	m_diagnosticReport->Clear();
 	RefreshReportView();
-}
-
-void DirectXPage::OnCompositionScaleChanged(SwapChainPanel^ sender, Object^ args)
-{
-	critical_section::scoped_lock lock(m_main->GetCriticalSection());
-	m_deviceResources->SetCompositionScale(sender->CompositionScaleX, sender->CompositionScaleY);
-	m_main->CreateWindowSizeDependentResources();
-}
-
-void DirectXPage::OnSwapChainPanelSizeChanged(Object^ sender, SizeChangedEventArgs^ e)
-{
-	critical_section::scoped_lock lock(m_main->GetCriticalSection());
-	m_deviceResources->SetLogicalSize(e->NewSize);
-	m_main->CreateWindowSizeDependentResources();
 }

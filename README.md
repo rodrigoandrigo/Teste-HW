@@ -8,6 +8,10 @@ The application performs functional probes rather than relying only on DLL prese
 
 ## Target
 
+The interface uses XAML only, without a custom D3D11 renderer, swap chain,
+render thread, or FPS overlay. Xbox layout scaling is disabled at launch.
+Graphics devices are created only by the diagnostic suites when requested.
+
 - UWP/AppContainer
 - Xbox Series consoles in Developer Mode
 - Windows x64
@@ -199,6 +203,75 @@ The DirectML suite dynamically loads its dependencies so that a missing runtime 
 7. Create and compile a FLOAT32 Identity operator.
 
 The system DirectML runtime is not bundled with the application.
+
+### Intel XeSS Super Resolution
+
+The XeSS suite uses Intel XeSS SDK 3.0.2 from the sibling
+`XeSS_SDK_3_0_2` directory. The package includes the unmodified D3D12 runtime
+`libxess.dll`, Intel's license, and the third-party program notices. Both x64
+Debug and Release packages also include the Microsoft VC143 Release OneCore
+runtime DLLs (`msvcp140.dll`, `vcruntime140.dll`, `vcruntime140_1.dll`), file
+version 14.44.35211.0, from `Dependencies/VC143/x64`. These satisfy the SDK's
+minimum runtime version; Xbox loading and initialization are tested separately.
+The x64 packages also include the unmodified `libxell.dll` (low latency) and
+`libxess_fg.dll` (frame generation) from the same SDK. These two libraries are
+tested by separate XeLL and XeSS-FG buttons.
+The probe:
+
+1. Loads `libxess.dll` from the application package.
+2. Resolves the required XeSS exports dynamically.
+3. Reports the loaded XeSS runtime version.
+4. Creates a D3D12 device and verifies Shader Model 6.4.
+5. Creates an XeSS D3D12 context.
+6. Checks the driver result and Intel XeFX version.
+7. Queries resource requirements and the optimal input-resolution range for
+   1920x1080 Performance mode.
+8. Initializes XeSS pipelines and resources with high-resolution motion
+   vectors.
+9. Reads back the initialization parameters and destroys the context.
+
+If the initial runtime load fails, the suite probes all 40 direct dependency
+modules and the delay-loaded D3D12 module from the SDK 3.0.2 import table.
+Each dependency result records module loading, every required named export,
+the exact Win32 errors, and elapsed time. The original XeSS loader error is
+preserved. Each module is checked with `GetModuleHandleExW` (with an owned
+reference) and `LoadLibraryExW` using `LOAD_LIBRARY_SEARCH_SYSTEM32`.
+The three Visual C++ runtime DLLs are additionally checked through
+`LoadPackagedLibrary`, independently of the system lookup. Every attempted
+method and its error are recorded, together with the method selected for
+export resolution. A failed lookup does not mark the module blocked when
+another method succeeds. All acquired references are released after inspection
+and exports are not invoked. Checks run on the target device.
+A failed dependency load can itself have a transitive cause. Successful export
+resolution proves availability only, not permission or functional compatibility.
+If the SDK runtime changes, its recorded import matrix must be updated.
+
+This diagnostic does not submit an upscaling frame. A successful initialization
+proves that the packaged runtime, D3D12 driver, pipeline compilation, and
+internal resource allocation are usable; it does not validate image quality or
+per-frame execution.
+
+### Intel XeLL and XeSS Frame Generation probes
+
+The XeLL probe dynamically loads `libxell.dll`, resolves required exports,
+queries its version, creates a D3D12 context, enables and reads back low-latency
+configuration, then restores pass-through mode. It tests pass-through sleep,
+synthetic simulation markers, and the 64-entry frame report query. No rendered
+or presented frame is implied, and latency reduction is not measured.
+
+The XeSS-FG probe also loads `libxess_fg.dll`, queries its version, creates a
+context (which checks device support), connects a XeLL context, queries the
+maximum interpolation count and 1080p memory requirements, builds pipelines
+synchronously, and checks build status. FG is destroyed before XeLL. Failed
+teardown retains dependencies to avoid unloading code still owned by a context.
+
+Proxy initialization and frame execution are explicitly skipped: the SDK
+recreates a native window swap chain, while this application has a XAML-only
+interface. No D3D11 renderer is restored. Both suite completions remain
+`INCONCLUSIVE` if their probes succeed, or reflect actual failures; they never
+claim verified latency reduction or generated frames. Exact SDK result codes,
+HRESULT/Win32 errors, and per-call durations are exported. Tests run in the
+background and are serialized because the SDK allows only one proxy context.
 
 ## Result statuses
 

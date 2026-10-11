@@ -9,8 +9,6 @@
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
   <Grid>
-    <SwapChainPanel x:Name="swapChainPanel" />
-
     <Grid Margin="24" Background="#DD101820">
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto" />
@@ -52,6 +50,15 @@
         <AppBarButton Label="Testar DirectML"
                       Icon="Play"
                       Click="RunDirectMlTests_Click" />
+        <AppBarButton Label="Testar XeSS"
+                      Icon="Play"
+                      Click="RunXessTests_Click" />
+        <AppBarButton Label="Testar XeLL"
+                      Icon="Play"
+                      Click="RunXellTests_Click" />
+        <AppBarButton Label="Testar XeSS-FG"
+                      Icon="Play"
+                      Click="RunXessFgTests_Click" />
         <AppBarButton Label="Testar memória/JIT"
                       Icon="Play"
                       Click="RunMemoryTests_Click" />

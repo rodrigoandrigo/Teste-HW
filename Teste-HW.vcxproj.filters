@@ -1,6 +1,12 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClInclude Include="Diagnostics\IntelLatencyFgDiagnostics.h">
+      <Filter>Diagnóstico</Filter>
+    </ClInclude>
+    <ClCompile Include="Diagnostics\IntelLatencyFgDiagnostics.cpp">
+      <Filter>Diagnóstico</Filter>
+    </ClCompile>
     <Filter Include="Comum">
       <UniqueIdentifier>4aaa2481-d3ec-4d21-8895-dfbd9ca2f38d</UniqueIdentifier>
     </Filter>
@@ -14,18 +20,6 @@
     <Filter Include="Diagnóstico">
       <UniqueIdentifier>5db354f2-f1c3-42b7-bb0e-1672e6d0de5d</UniqueIdentifier>
     </Filter>
-    <ClInclude Include="Common\DirectXHelper.h">
-      <Filter>Comum</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\StepTimer.h">
-      <Filter>Comum</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\DeviceResources.h">
-      <Filter>Comum</Filter>
-    </ClInclude>
-    <ClCompile Include="Common\DeviceResources.cpp">
-      <Filter>Comum</Filter>
-    </ClCompile>
     <ClInclude Include="Diagnostics\DiagnosticReport.h">
       <Filter>Diagnóstico</Filter>
     </ClInclude>
@@ -69,6 +63,9 @@
 	  <Filter>Diagnóstico</Filter>
 	</ClInclude>
 	<ClInclude Include="Diagnostics\VmComputeDiagnostics.h">
+	  <Filter>Diagnóstico</Filter>
+	</ClInclude>
+	<ClInclude Include="Diagnostics\XessDiagnostics.h">
 	  <Filter>Diagnóstico</Filter>
 	</ClInclude>
     <ClCompile Include="Diagnostics\DiagnosticReport.cpp">
@@ -116,12 +113,9 @@
 	<ClCompile Include="Diagnostics\VmComputeDiagnostics.cpp">
 	  <Filter>Diagnóstico</Filter>
 	</ClCompile>
-    <ClInclude Include="Content\SampleFpsTextRenderer.h">
-      <Filter>Conteúdo</Filter>
-    </ClInclude>
-    <ClCompile Include="Content\SampleFpsTextRenderer.cpp">
-      <Filter>Conteúdo</Filter>
-    </ClCompile>
+	<ClCompile Include="Diagnostics\XessDiagnostics.cpp">
+	  <Filter>Diagnóstico</Filter>
+	</ClCompile>
     <Image Include="Assets\LockScreenLogo.scale-200.png">
       <Filter>Ativos</Filter>
     </Image>
@@ -145,11 +139,9 @@
     <ApplicationDefinition Include="App.xaml" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Teste_HWMain.cpp" />
     <ClCompile Include="pch.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Teste_HWMain.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
