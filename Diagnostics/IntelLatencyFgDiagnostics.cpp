@@ -269,7 +269,6 @@ std::vector<DiagnosticResult> Run(bool frameGeneration)
         auto memory = probe.Export<decltype(&xefgSwapChainD3D12GetProperties)>(fgModule, "xefgSwapChainD3D12GetProperties");
         auto bind = probe.Export<decltype(&xefgSwapChainSetLatencyReduction)>(fgModule, "xefgSwapChainSetLatencyReduction");
         auto build = probe.Export<decltype(&xefgSwapChainD3D12BuildPipelines)>(fgModule, "xefgSwapChainD3D12BuildPipelines");
-        auto buildStatus = probe.Export<decltype(&xefgSwapChainGetPipelineBuildStatus)>(fgModule, "xefgSwapChainGetPipelineBuildStatus");
         probe.Export<decltype(&xefgSwapChainD3D12InitFromSwapChain)>(fgModule, "xefgSwapChainD3D12InitFromSwapChain");
         probe.Export<decltype(&xefgSwapChainD3D12GetInitializationParameters)>(fgModule, "xefgSwapChainD3D12GetInitializationParameters");
         if (version)
@@ -306,8 +305,12 @@ std::vector<DiagnosticResult> Run(bool frameGeneration)
         if (build)
             probe.pipelinesBuilt = probe.Call(L"xefgSwapChainD3D12BuildPipelines", [&] {
                 return build(probe.fg, nullptr, 1, XEFG_SWAPCHAIN_INIT_FLAG_NONE); }, L"Blocking=true; InitFlags=NONE.");
-        if (buildStatus && probe.pipelinesBuilt)
-            probe.Call(L"xefgSwapChainGetPipelineBuildStatus", [&] { return buildStatus(probe.fg); });
+        // The blocking build already returns its completion result. The Xbox
+        // runtime returned WRONG_CALL_ORDER for a subsequent status query.
+        // Reserve status polling for a separate non-blocking build probe.
+        probe.Add(L"xefgSwapChainGetPipelineBuildStatus", DiagnosticStatus::Skipped,
+            L"BuildMode=blocking; completion is reported by xefgSwapChainD3D12BuildPipelines. "
+            L"Status polling applies to the non-blocking probe, which is not run here.");
         probe.Add(L"XeSS-FG proxy initialization and frame execution", DiagnosticStatus::Skipped,
             L"SDK initialization recreates a window swap chain. The XAML-only app supplies no native window swap chain. "
             L"No null/fabricated HWND was passed; no frames were generated or presented.");

@@ -261,9 +261,12 @@ or presented frame is implied, and latency reduction is not measured.
 
 The XeSS-FG probe also loads `libxess_fg.dll`, queries its version, creates a
 context (which checks device support), connects a XeLL context, queries the
-maximum interpolation count and 1080p memory requirements, builds pipelines
-synchronously, and checks build status. FG is destroyed before XeLL. Failed
-teardown retains dependencies to avoid unloading code still owned by a context.
+maximum interpolation count and 1080p memory requirements, and builds pipelines
+synchronously. The blocking build return code records completion; a subsequent
+pipeline status query is explicitly skipped after the Xbox runtime returned
+`ERROR_WRONG_CALL_ORDER` for that sequence. Asynchronous polling is not tested.
+FG is destroyed before XeLL. Failed teardown retains dependencies to avoid
+unloading code still owned by a context.
 
 Proxy initialization and frame execution are explicitly skipped: the SDK
 recreates a native window swap chain, while this application has a XAML-only
@@ -280,10 +283,12 @@ background and are serialized because the SDK allows only one proxy context.
 | `PASS` | The described operation completed successfully. |
 | `FAIL` | The API was accessible, but observed behavior did not match the expected semantics. |
 | `BLOCKED` | The DLL, class, API, permission, service, or required subsystem was inaccessible. |
-| `SKIPPED` | The probe was not applicable because a prerequisite feature was not advertised. |
-| `INCONCLUSIVE` | The probe reached a configured safety boundary or could not establish an exact limit. |
+| `SKIPPED` | The operation was not executed because a prerequisite was unavailable, it was not applicable, or it is outside the implemented probe. |
+| `INCONCLUSIVE` | Available evidence is insufficient to establish the full capability, measured effect, or exact limit. |
 
 Suite-completion entries aggregate the status of their preceding stages. Inspect the first blocked or failed stage for the useful error code.
+XeLL and XeSS-FG completions remain `INCONCLUSIVE` when all implemented probes
+pass because actual latency reduction and frame generation have not been tested.
 
 ## Building
 
@@ -364,6 +369,42 @@ interpreter or dynamic binary translator, software MMU and privileged-instructio
 modeling, and native threads for guest SMP.
 
 These observations are device-, OS-, package-, and configuration-specific. Re-run the probes after system updates or manifest changes instead of treating them as permanent platform guarantees.
+
+### Intel SDK results confirmed on October 11, 2026
+
+The following results come from the target-console reports
+`Teste-HW_20261011_114141_UTC.txt` (super resolution) and
+`Teste-HW_20261011_121205_UTC.txt` (XeLL and frame generation).
+The SDK distribution is named 3.0.2; runtime API versions are queried separately.
+
+| Runtime | Version reported by API | Confirmed operations | Still untested |
+|---|---|---|---|
+| XeSS-SR (`libxess.dll`) | 2.0.2 | Loading, export resolution, D3D12 device, Shader Model 6.4, context creation, driver check, 1080p Performance initialization and teardown | `xessD3D12Execute`, GPU completion, output readback and image quality |
+| XeLL (`libxell.dll`) | 1.3.2 | Context creation, sleep-mode configuration/readback, pass-through sleep, synthetic simulation markers, frame-report query and teardown | Effective latency reduction with rendered/presented frames |
+| XeSS-FG (`libxess_fg.dll`) | 1.3.1 | Context creation, XeLL binding, resource queries, blocking pipeline compilation and teardown | Proxy swap-chain initialization, interpolation and presentation |
+
+The original XeSS loader failure (`ERROR_MOD_NOT_FOUND`, 126) was resolved by
+bundling the three Release OneCore Visual C++ runtime DLLs. The corrected
+dependency probe also resolved the required SHLWAPI, SETUPAPI, ADVAPI32 and
+Device Configuration exports on the console; that result alone does not verify
+permission or behavior when those functions are invoked.
+
+For XeSS-SR at 1920x1080 Performance, the runtime reported an optimal input of
+835x470 and initialized successfully. The XeSS-FG runtime reported one maximum
+interpolation and the following 1080p resource requirements:
+
+- 326 descriptors.
+- 15,859,712 bytes of temporary buffer heap.
+- 103,940,096 bytes of temporary texture heap.
+- 8,978,432 bytes of constant buffer storage.
+
+These are queried requirements, not measured total GPU memory consumption.
+The latest blocking FG pipeline build completed in 7.34 seconds; the entire
+probe took 7.39 seconds. These timings do not measure per-frame performance.
+The latest report contains 41 `PASS`, two `SKIPPED`, one `INCONCLUSIVE`, and
+no `FAIL` or `BLOCKED` results. The pipeline-status query is deliberately skipped
+after the blocking build: an earlier run returned `ERROR_WRONG_CALL_ORDER`
+for that subsequent query. Non-blocking compilation and polling remain untested.
 
 ## Safety notes
 
