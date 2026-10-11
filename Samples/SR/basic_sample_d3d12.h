@@ -1,4 +1,5 @@
 #include "../SampleHost.h"
+#include "../SponzaScene.h"
 //*********************************************************
 //
 // Copyright (c) Microsoft. All rights reserved.
@@ -33,7 +34,10 @@ using Microsoft::WRL::ComPtr;
 class BasicSampleD3D12 : public DXSample
 {
 public:
-    BasicSampleD3D12(UINT width, UINT height, std::wstring name);
+    BasicSampleD3D12(UINT width, UINT height, std::wstring name, int preset = 0);
+    static const wchar_t* PresetName(int preset) {
+        return preset == 0 ? L"AA" : preset == 1 ? L"Ultra Quality Plus" : preset == 2 ? L"Quality" : L"Balanced";
+    }
 
     virtual void OnInit();
     virtual void OnUpdate();
@@ -151,7 +155,11 @@ private:
     xess_2d_t m_renderResolution;
     ComPtr<ID3D12Heap> m_texturesHeap;
     ComPtr<ID3D12Resource> m_xessOutput[FrameCount];
-    const xess_quality_settings_t m_quality = XESS_QUALITY_SETTING_PERFORMANCE;
+    xess_quality_settings_t m_quality = XESS_QUALITY_SETTING_AA;
+    int m_preset = 0;
+    SponzaScene m_scene;
+    double m_sceneSeconds = 0;
+    uint64_t m_sceneFrame = 0;
 
     std::chrono::time_point<std::chrono::high_resolution_clock> last_time;
 

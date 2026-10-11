@@ -36,8 +36,8 @@
                ScrollViewer.VerticalScrollBarVisibility="Auto"
                ScrollViewer.HorizontalScrollBarVisibility="Auto" />
     </Grid>
-    <Grid x:Name="animationOverlay" Visibility="Collapsed" Background="Black">
-      <SwapChainPanel x:Name="animationPanel" />
+    <Grid x:Name="animationOverlay" Visibility="Collapsed" Background="Black" SizeChanged="AnimationOverlay_SizeChanged">
+      <SwapChainPanel x:Name="animationPanel" HorizontalAlignment="Center" VerticalAlignment="Center" />
       <TextBlock x:Name="animationStatus" Margin="24" VerticalAlignment="Top" Foreground="White" FontSize="24" />
     </Grid>
   </Grid>
@@ -50,7 +50,9 @@
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
         <AppBarButton Label="Sample XeSS-FG (10s)" Icon="Play" Click="RunFgSample_Click" />
         <AppBarButton Label="Sample XeLL (10s)" Icon="Play" Click="RunLlSample_Click" />
-        <AppBarButton Label="Sample XeSS-SR DX12 (10s)" Icon="Play" Click="RunSrSample_Click" />
+        <AppBarButton Label="FSR3 FG 3.1.6 (10s)" Icon="Play" Click="RunFsr3Sample_Click" />
+        <AppBarButton Label="Sponza FSR3 Native AA / Quality / Balanced (3×10s)" Icon="Play" Click="RunFsr3Upscale_Click" />
+        <AppBarButton Label="Sponza XeSS AA / Ultra Quality Plus / Quality / Balanced (4×10s)" Icon="Play" Click="RunSrSample_Click" />
         <AppBarButton Label="Testar CPU"
                       Icon="Play"
                       Click="RunCpuTests_Click" />

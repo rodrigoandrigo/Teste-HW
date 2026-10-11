@@ -41,6 +41,8 @@ App::App()
 void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEventArgs^ e)
 {
 	DebugSettings->EnableFrameRateCounter = false;
+    Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(
+        Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
 	if (Windows::Foundation::Metadata::ApiInformation::IsTypePresent(
 		L"Windows.UI.ViewManagement.ApplicationViewScaling"))
 	{

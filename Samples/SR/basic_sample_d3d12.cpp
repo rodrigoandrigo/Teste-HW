@@ -27,7 +27,7 @@ using ::ThrowIfFailed;
 
 
 
-//#define USE_LOWRES_MV 1
+#define USE_LOWRES_MV 1
 
 inline std::string XeSSResultToString(xess_result_t result)
 {
@@ -127,7 +127,7 @@ void BasicSampleD3D12::OnKeyUp(UINT8 key)
     }
 }
 
-BasicSampleD3D12::BasicSampleD3D12(UINT width, UINT height, std::wstring name)
+BasicSampleD3D12::BasicSampleD3D12(UINT width, UINT height, std::wstring name, int preset)
     : DXSample(width, height, name)
     , m_viewport(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height))
     , m_scissorRect(0, 0, static_cast<LONG>(width), static_cast<LONG>(height))
@@ -139,6 +139,11 @@ BasicSampleD3D12::BasicSampleD3D12(UINT width, UINT height, std::wstring name)
     , m_desiredOutputResolution{width, height}
 
 {
+    if(preset<0||preset>3)throw std::invalid_argument("Invalid XeSS preset");
+    m_preset=preset;
+    const xess_quality_settings_t modes[]={XESS_QUALITY_SETTING_AA,XESS_QUALITY_SETTING_ULTRA_QUALITY_PLUS,
+        XESS_QUALITY_SETTING_QUALITY,XESS_QUALITY_SETTING_BALANCED};
+    m_quality=modes[preset];
     m_haltonPointSet = Utils::GenerateHalton(2, 3, 1, 32);
 }
 
@@ -155,6 +160,20 @@ void BasicSampleD3D12::OnInit()
     SampleRuntime::Checkpoint("SR CreateFSQPipelines");
     CreateFSQPipelines();
     PopulateDescriptorHeap();
+    SampleRuntime::Checkpoint("XeSS Sponza assets/upload BEGIN");
+    ThrowIfFailed(m_commandAllocators[m_frameIndex]->Reset());
+    ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_frameIndex].Get(),nullptr));
+    m_scene.Init(m_device.Get(),m_commandList.Get(),GetAssetFullPath(L"Assets/Sponza/scene.spz"),
+        GetAssetFullPath(L"basic_sample_shaders/hlsl/sponza.hlsl.VSMain.cso"),
+        GetAssetFullPath(L"basic_sample_shaders/hlsl/sponza.hlsl.PSMain.cso"),
+        m_renderTargets[0]->GetDesc().Format,m_dsvTypedFormat);
+    ThrowIfFailed(m_commandList->Close());
+    ID3D12CommandList* commands[]={m_commandList.Get()};m_commandQueue->ExecuteCommandLists(1,commands);
+    WaitForGpu();m_scene.ReleaseUploads();
+    Teste_HW::Samples::SampleJournal::Write(L"PRESET BEGIN XeSS / "+std::wstring(PresetName(m_preset))+L"; Input="+
+        std::to_wstring(m_renderResolution.x)+L"x"+std::to_wstring(m_renderResolution.y)+
+        L"; Output="+std::to_wstring(m_desiredOutputResolution.x)+L"x"+std::to_wstring(m_desiredOutputResolution.y)+
+        L"; Scene=SponzaNew; DurationSeconds=10; MotionVectors=low-resolution UV scaled to pixels; Depth=reversed; HistoryReset=yes");
 }
 
 void BasicSampleD3D12::InitDx()
@@ -272,7 +291,7 @@ void BasicSampleD3D12::InitXess()
         {D3D12_HEAP_TYPE_DEFAULT, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 0, 0},
         0, D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES};
 
-    m_device->CreateHeap(&textures_heap_desc, IID_PPV_ARGS(&m_texturesHeap));
+    ThrowIfFailed(m_device->CreateHeap(&textures_heap_desc, IID_PPV_ARGS(&m_texturesHeap)));
     m_texturesHeap->SetName(L"xess_textures_heap");
 
     m_uavDescriptorSize =
@@ -285,7 +304,7 @@ void BasicSampleD3D12::InitXess()
         m_quality,
         /* Initialization flags. */
         #if defined(USE_LOWRES_MV)
-        XESS_INIT_FLAG_NONE,
+        XESS_INIT_FLAG_INVERTED_DEPTH | XESS_INIT_FLAG_LDR_INPUT_COLOR,
         #else
         XESS_INIT_FLAG_HIGH_RES_MV,
         #endif
@@ -314,8 +333,11 @@ void BasicSampleD3D12::InitXess()
     ThrowIfFailed(xessD3D12Init(m_xessContext, &params), "Unable to initialize XeSS context");
 
     // Get optimal input resolution
-    ThrowIfFailed(xessGetInputResolution(
-        m_xessContext, &m_desiredOutputResolution, m_quality, &m_renderResolution), "Unable to get input resolution");
+    xess_2d_t minimum={},maximum={};
+    ThrowIfFailed(xessGetOptimalInputResolution(m_xessContext,&m_desiredOutputResolution,m_quality,
+        &m_renderResolution,&minimum,&maximum),"Unable to get optimal input resolution");
+    if(!m_renderResolution.x||!m_renderResolution.y)throw std::runtime_error("Invalid XeSS input resolution");
+    ThrowIfFailed(xessSetVelocityScale(m_xessContext,float(m_renderResolution.x),float(m_renderResolution.y)),"Unable to set UV velocity scale");
 }
 
 // Load the rendering pipeline dependencies.
@@ -428,7 +450,7 @@ void BasicSampleD3D12::LoadPipeline()
             // Velocity
             fmt = DXGI_FORMAT_R16G16_FLOAT;
             tex_desc = CD3DX12_RESOURCE_DESC::Tex2D(
-                fmt, m_desiredOutputResolution.x, m_desiredOutputResolution.y);
+                fmt, m_renderResolution.x, m_renderResolution.y);
             tex_desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
             clear_value.Format = fmt;
             ThrowIfFailed(m_device->CreateCommittedResource(&heap_props, D3D12_HEAP_FLAG_NONE,
@@ -844,6 +866,7 @@ void BasicSampleD3D12::CreateFSQPipelines()
 // Update frame-based values.
 void BasicSampleD3D12::OnUpdate()
 {
+    m_sceneSeconds+=m_lastFrameTimeMS/1000.0;
     if (last_time.time_since_epoch().count() == 0)
     {
         last_time = std::chrono::high_resolution_clock::now();
@@ -991,6 +1014,23 @@ void BasicSampleD3D12::PopulateCommandList()
         m_commandList->DrawInstanced(3, 1, 0, 0);
     }
 
+    // Replace the legacy triangle passes with the real Sponza color/depth/motion.
+    {
+        SampleRuntime::Checkpoint("XeSS Sponza draw BEGIN");
+        D3D12_CPU_DESCRIPTOR_HANDLE targets[]={
+            CD3DX12_CPU_DESCRIPTOR_HANDLE(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(),m_frameIndex*RTCount+RT_Color,m_rtvDescriptorSize),
+            CD3DX12_CPU_DESCRIPTOR_HANDLE(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(),m_frameIndex*RTCount+RT_Velocity,m_rtvDescriptorSize)};
+        auto depth=CD3DX12_CPU_DESCRIPTOR_HANDLE(m_dsvHeap->GetCPUDescriptorHandleForHeapStart(),m_frameIndex,m_dsvDescriptorSize);
+        const float background[]={.04f,.06f,.09f,1},zero[]={0,0,0,0};
+        m_commandList->ClearRenderTargetView(targets[0],background,0,nullptr);
+        m_commandList->ClearRenderTargetView(targets[1],zero,0,nullptr);
+        m_commandList->ClearDepthStencilView(depth,D3D12_CLEAR_FLAG_DEPTH|D3D12_CLEAR_FLAG_STENCIL,0,0,0,nullptr);
+        m_commandList->OMSetRenderTargets(2,targets,FALSE,&depth);
+        CD3DX12_VIEWPORT viewport(0.f,0.f,float(m_renderResolution.x),float(m_renderResolution.y));
+        CD3DX12_RECT rect(0,0,m_renderResolution.x,m_renderResolution.y);
+        m_commandList->RSSetViewports(1,&viewport);m_commandList->RSSetScissorRects(1,&rect);
+        m_scene.Render(m_commandList.Get(),m_renderResolution.x,m_renderResolution.y,jitter[0],-jitter[1],m_sceneSeconds,m_sceneFrame==0);
+    }
     // Transition render targets D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE for XeSS
     std::vector<CD3DX12_RESOURCE_BARRIER> transitions = {
         CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(),
@@ -1010,6 +1050,7 @@ void BasicSampleD3D12::PopulateCommandList()
         exec_params.jitterOffsetX = jitter[0];
         exec_params.jitterOffsetY = -jitter[1];
         exec_params.exposureScale = 1.0f;
+        exec_params.resetHistory = m_sceneFrame == 0;
 
         exec_params.pColorTexture = m_renderTargets[m_frameIndex].Get();
         exec_params.pVelocityTexture = m_renderTargetsVelocity[m_frameIndex].Get();
@@ -1021,6 +1062,7 @@ void BasicSampleD3D12::PopulateCommandList()
         #endif
         exec_params.pExposureScaleTexture = 0;
         ThrowIfFailed(xessD3D12Execute(m_xessContext, m_commandList.Get(), &exec_params), "Unable to run XeSS");
+        ++m_sceneFrame;
     }
 
     // Render XeSS output using full screen quad
@@ -1031,7 +1073,7 @@ void BasicSampleD3D12::PopulateCommandList()
         // Transition XeSS output is in UAV so we need to transition it to SRV
         CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(
             m_xessOutput[m_frameIndex].Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-            D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         m_commandList->ResourceBarrier(1, &transition);
 
         if (m_outputIndex == DHI_Velocity)
@@ -1079,7 +1121,7 @@ void BasicSampleD3D12::PopulateCommandList()
 
         // Transition XeSS output to UAV for future use
         transition = CD3DX12_RESOURCE_BARRIER::Transition(m_xessOutput[m_frameIndex].Get(),
-            D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
         m_commandList->ResourceBarrier(1, &transition);
     }
 

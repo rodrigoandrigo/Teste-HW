@@ -181,5 +181,7 @@
     <ClCompile Include="Samples\SampleJournal.cpp" />
     <ClInclude Include="Samples\NativeGuard.h" />
     <ClInclude Include="Samples\SampleJournal.h" />
+    <ClInclude Include="Samples\Fsr3Sample.h" />
+    <ClInclude Include="Samples\Fsr3UpscaleSample.h" />
   </ItemGroup>
 </Project>

@@ -39,8 +39,12 @@ namespace Teste_HW
 	private:
         void RunFgSample_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void RunLlSample_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void RunFsr3Sample_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void RunFsr3Upscale_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void RunSrSample_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void RunSampleAnimation(Samples::Animation animation);
+        void AnimationOverlay_SizeChanged(Platform::Object^ sender, Windows::UI::Xaml::SizeChangedEventArgs^ e);
+        void UpdateAnimationLayout();
         bool m_animationRunning = false;
 		// Outros manipuladores de eventos.
 		void RunCpuTests_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);

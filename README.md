@@ -291,7 +291,111 @@ XeLL and XeSS-FG completions remain `INCONCLUSIVE` when all implemented probes
 pass because those initialization-only probes do not test actual latency
 reduction or frame generation. Animated samples have separate results.
 
-## Animated XeSS SDK samples
+## Animated GPU SDK samples
+
+Animation presentation fits the available window area with centered 16:9
+letterboxing, without changing benchmark render/output resolutions. A DXGI
+composition matrix maps the fixed-size backbuffer to the panel's XAML dimensions;
+panel size/composition-scale changes refresh that matrix. The command bar is
+hidden during playback, and the app requests CoreWindow rather than visible-area
+bounds on Xbox. `Presentation fit` trace entries record panel dimensions,
+composition scale and the matrix-update HRESULT. Actual TV/Xbox layout still
+requires device-side verification.
+
+## FSR3 Upscaling 3.1.5 standalone sample
+
+The **Sponza FSR3 Native AA / Quality / Balanced (3x10s)** button runs the SDK's
+SponzaNew 3D scene through Native AA (1280x720), Quality (853x480), and Balanced (752x423),
+in that order, for 10 rendering seconds each, always outputting 1280x720.
+GPU drain, resource/context recreation, and history reset occur between presets;
+initialization and teardown add time beyond the 30 rendering seconds.
+Each preset has its own result, dispatch/presentation counters and pixel readbacks.
+Cancellation or a failed/incomplete stage stops the sequence. The scene uses a
+UWP-native D3D12 renderer, not the desktop Cauldron framework/ HWND host.
+It includes 3,233,440 vertices, 5,737,256 triangles, 578 draws and 28 base-color
+textures. Geometry is preserved; textures are capped at 512 pixels and include
+mip chains to fit Xbox AppContainer memory budgets. The packed asset is about
+200 MiB. The PhysCamera003 camera follows a smooth animated path, restarted for
+each preset. Perspective projection, reversed depth and jitter-free
+current-to-previous UV motion vectors feed FSR. Automatic exposure and sharpening
+are enabled. XeLL and frame generation are not enabled in this sample.
+
+Lighting is a simplified directional/ambient model, not the full Cauldron PBR,
+shadow, IBL, particle or transparency pipeline; normal/metalness/roughness maps
+are not sampled and blended materials are approximated using alpha discard.
+This is a real Sponza geometry test, not visual parity with the SDK demo.
+Scene credit/license is packaged as `Assets/Sponza/credits_license.txt`; its
+personal/educational-use restrictions are separate from SDK source licenses.
+
+The packaged `amd_fidelityfx_upscaler_dx12.dll` is loaded dynamically. Provider
+enumeration explicitly selects `3.1.5`; an absent provider is recorded as blocked,
+without silently using FSR2 or ML upscaling. Backend/version descriptors stay alive
+until context destruction. The app queries shader support up to SM6.4 and requires
+SM6.2, but the unmodified binary selects its own shader permutations; actual Xbox
+compatibility remains a runtime test, not a build-time guarantee.
+
+The test records `FSR3UpscaleDispatches`, changing/nonuniform GPU readbacks,
+presentation and GPU-drained teardown. Full 10-second execution and successful
+upscale dispatches are required for `PASS`. This does not establish pixel-perfect
+image quality or a performance gain. Persistent diagnostics and next-launch recovery
+use `XeSS_sample_FSR3_SR_trace.txt` in LocalState.
+
+`Samples/tests/RunFsr3UpscaleTests.cmd` checks the exact 3.1.5 provider and performs
+two native desktop GPU dispatches from 640x360 to 1280x720, fence completion, output
+readback and context destruction. Installed UWP/Xbox execution is a separate check.
+
+`Samples/tests/RunSponzaTests.cmd` renders three animated Sponza frames through
+FSR3 3.1.5 for each of the three presets, checks changing/nonuniform readbacks,
+GPU fences, device status and D3D12 debug errors, and writes PPM screenshots.
+This native offscreen test does not validate UWP presentation or Xbox execution.
+
+To regenerate `Assets/Sponza/scene.spz`, first obtain the SDK's official media
+with its `UpdateMedia.bat` (bundle SHA256
+`48cfdbd0b65a2429b1078d820e4ad9bc115c356afda705325a94494cf6cf8e01`). Then run:
+
+```text
+python Samples/tools/ConvertSponza.py ../FidelityFX-SDK-2_3_0/media/cauldronmedia/SponzaNew/MainSponza.gltf Assets/Sponza/scene.spz
+```
+
+The offline conversion requires numpy and Pillow; neither is used by the app.
+
+## FSR3 Frame Generation 3.1.6 standalone sample
+
+The **FSR3 FG 3.1.6 (10s)** button runs a separate FidelityFX test at 1280x720.
+It uses the SDK 2.3.0 signed `amd_fidelityfx_framegeneration_dx12.dll`, queries
+available providers and explicitly selects `3.1.6`; it never falls back to ML FG.
+The sibling `FidelityFX-SDK-2_3_0` directory supplies headers and the runtime.
+AMD license and third-party notices are included in the package.
+
+The animated triangle scene is shared with the XeLL sample, but XeLL is disabled
+for this path. Motion vectors describe current-to-previous UV displacement;
+background velocity is zero and wraparound resets temporal history. Preparation
+and generation are dispatched on the application command list, with
+`FFX_FRAMEGENERATION_FLAG_NO_SWAPCHAIN_CONTEXT_NOTIFY` and no AMD proxy swapchain.
+Generated RGBA8 output is copied to the app's composition swapchain and attached
+to XAML. This initial diagnostic displays generated output only; it does not
+alternate real/generated presents or claim doubled scanout, FPS or good pacing.
+
+The app queries shader support with an SM6.4 ceiling and requires at least SM6.2.
+The precompiled binary chooses its own shader permutations from device capabilities;
+this is not a source build that strips all SM6.6 variants from the DLL. Compatibility
+with the console's exposed shader support must be verified at context creation and
+dispatch. Desktop Win32 imports in this runtime may also prevent AppContainer loading;
+loading failures are recorded rather than treated as supported functionality.
+
+Results include return codes, successful generation-dispatch count after history
+warmup, presentation, changing/nonuniform GPU readbacks and teardown. A `PASS`
+requires the full interval and these functional checks, not just context creation.
+It is not a pixel-perfect interpolation-quality test. Trace and next-launch recovery
+use `XeSS_sample_FSR3_trace.txt` in LocalState. GPU faults follow the same restart
+safety policy as the other animated samples.
+
+`Samples/tests/RunFsr3ProviderTests.cmd` provides a native desktop GPU smoke test:
+provider selection, context creation, configuration without a swapchain, two
+synthetic prepare/generate dispatches, fence completion, readback and teardown.
+It does not test the installed UWP app, Xbox, image quality or physical scanout.
+
+## XeSS sample execution and diagnostics
 
 Each sample traces baseline D3D12 device creation with the default adapter
 (the same adapter/feature-level arguments used by the DirectML probe) and
@@ -311,8 +415,21 @@ The SDK 3.0.2 scenes have independent buttons; each runs only its selected sampl
    presents through the SDK proxy and queries each last-present status.
 2. **Sample XeLL (10s)** / `basic_sample_low_latency`: renders the SDK scene with low-latency sleep,
    simulation/render/present markers and frame-report queries.
-3. **Sample XeSS-SR DX12 (10s)** / `basic_sample_super_resolution_dx12`: renders the jittered, lower-resolution
-   SDK scene, executes XeSS-SR and displays the upscaled output.
+3. **Sponza XeSS AA / Ultra Quality Plus / Quality / Balanced (4x10s)**:
+   renders SponzaNew with the UWP-native scene renderer, executes XeSS-SR, and
+   displays 1280x720 output. The four presets run in that order for 10 rendering
+   seconds each, with a separate result/readbacks and GPU-drained context/resource
+   recreation between stages. Cancellation or a failed/incomplete stage stops
+   the sequence. Input dimensions are queried with `xessGetOptimalInputResolution`,
+   not inferred from legacy scale factors. Reversed depth, low-resolution motion
+   vectors scaled from UV to pixels, LDR color and first-frame history reset match
+   the scene renderer. The Sponza lighting/asset restrictions described above apply.
+
+   `Samples/tests/RunXessSponzaTests.cmd` checks three animated offscreen frames per
+   preset using the packaged XeSS DLL, fences/readbacks and D3D12 validation.
+   Locally the runtime returned AA=1280x720, Ultra Quality Plus=985x554,
+   Quality=753x424 and Balanced=640x360; Xbox/runtime results may differ.
+   This is not an installed UWP/Xbox presentation test.
 
 Each successfully initialized scene runs for **10 seconds**. Initialization,
 pipeline compilation and teardown are outside that animation interval, so the

@@ -133,6 +133,7 @@ void BasicSample::OnMouseWheel(WORD wValue)
 
 void BasicSample::OnSleep()
 {
+    if (!m_useLatency) return;
 #ifdef ENABLE_XELL
     // Pace the application with predicted sleep interval
     m_frameCounter++;
@@ -149,7 +150,7 @@ void BasicSample::OnInit()
     SampleRuntime::Checkpoint("LL LoadAssets");
     LoadAssets();
 #ifdef ENABLE_XELL
-    InitXell();
+    if (m_useLatency) InitXell();
 #endif
     CreateFSQPipeline();
     PopulateDescriptorHeap();
@@ -760,11 +761,13 @@ void BasicSample::CreateFSQPipeline()
 void BasicSample::OnUpdate()
 {
 #ifdef ENABLE_XELL
-    VERIFY_XELL(xellAddMarkerData(m_xellContext, m_frameCounter, XELL_SIMULATION_START));
+    if (m_xellContext) VERIFY_XELL(xellAddMarkerData(m_xellContext, m_frameCounter, XELL_SIMULATION_START));
     
     xell_frame_report_t xell_frames_reports[64] = {};
-    VERIFY_XELL(xellGetFramesReports(m_xellContext, xell_frames_reports));
-    SampleRuntime::ObserveLatencyReports(xell_frames_reports);
+    if (m_xellContext) {
+        VERIFY_XELL(xellGetFramesReports(m_xellContext, xell_frames_reports));
+        SampleRuntime::ObserveLatencyReports(xell_frames_reports);
+    }
 #endif
 
     if (last_time.time_since_epoch().count() == 0)
@@ -792,7 +795,7 @@ void BasicSample::OnUpdate()
     //Sleep(1);
 
 #ifdef ENABLE_XELL
-    VERIFY_XELL(xellAddMarkerData(m_xellContext, m_frameCounter, XELL_SIMULATION_END));
+    if (m_xellContext) VERIFY_XELL(xellAddMarkerData(m_xellContext, m_frameCounter, XELL_SIMULATION_END));
 #endif
 }
 
@@ -800,7 +803,7 @@ void BasicSample::OnUpdate()
 void BasicSample::OnRender()
 {
 #ifdef ENABLE_XELL
-    VERIFY_XELL(xellAddMarkerData(m_xellContext, m_frameCounter, XELL_RENDERSUBMIT_START));
+    if (m_xellContext) VERIFY_XELL(xellAddMarkerData(m_xellContext, m_frameCounter, XELL_RENDERSUBMIT_START));
 #endif
 
     // Record all the commands we need to render the scene into the command list.
@@ -811,13 +814,13 @@ void BasicSample::OnRender()
     m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
 #ifdef ENABLE_XELL
-    VERIFY_XELL(xellAddMarkerData(m_xellContext, m_frameCounter, XELL_RENDERSUBMIT_END));
+    if (m_xellContext) VERIFY_XELL(xellAddMarkerData(m_xellContext, m_frameCounter, XELL_RENDERSUBMIT_END));
 #endif
 
     SampleRuntime::ObserveFrame(m_device.Get(), m_commandQueue.Get(), m_presentRenderTargets[m_frameIndex].Get());
     // Present the frame.
 #ifdef ENABLE_XELL
-    VERIFY_XELL(xellAddMarkerData(m_xellContext, m_frameCounter, XELL_PRESENT_START));
+    if (m_xellContext) VERIFY_XELL(xellAddMarkerData(m_xellContext, m_frameCounter, XELL_PRESENT_START));
 #endif
 
     if (m_useAsyncFlip)
@@ -826,7 +829,7 @@ void BasicSample::OnRender()
         ThrowIfFailed(SampleRuntime::Present(m_swapChain.Get(), 1, 0));
 
 #ifdef ENABLE_XELL
-    VERIFY_XELL(xellAddMarkerData(m_xellContext, m_frameCounter, XELL_PRESENT_END));
+    if (m_xellContext) VERIFY_XELL(xellAddMarkerData(m_xellContext, m_frameCounter, XELL_PRESENT_END));
 #endif
 
     MoveToNextFrame();
@@ -921,7 +924,8 @@ void BasicSample::PopulateCommandList()
         m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
 
         // Record commands.
-        m_commandList->ClearRenderTargetView(rtvHandle, ClearColor, 0, nullptr);
+        const float zeroVelocity[4] = {};
+        m_commandList->ClearRenderTargetView(rtvHandle, m_useLatency ? ClearColor : zeroVelocity, 0, nullptr);
         m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
         m_commandList->DrawInstanced(3, 1, 0, 0);
@@ -977,6 +981,7 @@ void BasicSample::PopulateCommandList()
         m_commandList->ResourceBarrier(1, &transition);
     }
 
+    RecordGeneratedFrame();
     ThrowIfFailed(m_commandList->Close());
 }
 

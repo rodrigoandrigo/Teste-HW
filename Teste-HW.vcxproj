@@ -281,6 +281,22 @@
       <Link>libxell.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="..\FidelityFX-SDK-2_3_0\Kits\FidelityFX\signedbin\amd_fidelityfx_framegeneration_dx12.dll" Condition="'$(Platform)'=='x64'">
+      <Link>amd_fidelityfx_framegeneration_dx12.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\FidelityFX-SDK-2_3_0\Kits\FidelityFX\docs\license.md">
+      <Link>FidelityFX-LICENSE.md</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\FidelityFX-SDK-2_3_0\Kits\FidelityFX\signedbin\amd_fidelityfx_upscaler_dx12.dll" Condition="'$(Platform)'=='x64'">
+      <Link>amd_fidelityfx_upscaler_dx12.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\FidelityFX-SDK-2_3_0\3rdpartynotice.md">
+      <Link>FidelityFX-3rdpartynotice.md</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="..\XeSS_SDK_3_0_2\bin\libxess_fg.dll" Condition="'$(Platform)'=='x64'">
       <Link>libxess_fg.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -327,6 +343,14 @@
     <ClCompile Include="Samples\SR\basic_sample_d3d12.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
     <ClInclude Include="Samples\SampleHost.h" />
     <ClInclude Include="Samples\SampleAnimations.h" />
+    <ClInclude Include="Samples\Fsr3Sample.h" />
+    <ClInclude Include="Samples\Fsr3UpscaleSample.h" />
+    <ClInclude Include="Samples\SponzaScene.h" />
+    <ClCompile Include="Samples\SponzaScene.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <Content Include="Assets\Sponza\scene.spz"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="..\FidelityFX-SDK-2_3_0\media\cauldronmedia\SponzaNew\credits_license.txt"><Link>Assets\Sponza\credits_license.txt</Link><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <None Include="Samples\tools\ConvertSponza.py" />
+    <None Include="basic_sample_shaders\hlsl\sponza.hlsl" />
     <ClInclude Include="Samples\RuntimeCalls.h" />
     <ClInclude Include="Samples\LL\basic_sample.h" />
     <ClInclude Include="Samples\FG\basic_sample.h" />

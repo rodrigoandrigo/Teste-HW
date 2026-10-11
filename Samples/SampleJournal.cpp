@@ -138,7 +138,7 @@ void SampleJournal::Close(const wchar_t* status) noexcept
 std::vector<Diagnostics::DiagnosticResult> SampleJournal::Recover()
 {
     std::vector<Diagnostics::DiagnosticResult> results;
-    for (const wchar_t* key : { L"FG", L"LL", L"SR" }) {
+    for (const wchar_t* key : { L"FG", L"LL", L"SR", L"FSR3", L"FSR3_SR" }) {
         std::wstring path = Folder() + L"\\XeSS_sample_" + key + L"_trace.txt";
         HANDLE file = CreateFile2FromAppW(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_EXISTING, nullptr);
         if (file == INVALID_HANDLE_VALUE) continue;

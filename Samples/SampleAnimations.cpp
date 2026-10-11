@@ -3,6 +3,8 @@
 #include "LL/basic_sample.h"
 #include "FG/basic_sample.h"
 #include "SR/basic_sample_d3d12.h"
+#include "Fsr3Sample.h"
+#include "Fsr3UpscaleSample.h"
 #include <windows.ui.xaml.media.dxinterop.h>
 #include "../Diagnostics/IntelLatencyFgDiagnostics.h"
 
@@ -208,10 +210,53 @@ struct PanelAttachment {
     HRESULT result = E_PENDING;
     SampleNative::Fault fault;
     bool safe = true;
+    float width = 0, height = 0;
 };
+static void ScalePanelNative(void* context)
+{
+    auto* state = static_cast<PanelAttachment*>(context);
+    Microsoft::WRL::ComPtr<IDXGISwapChain2> chain;
+    state->result = state->chain->QueryInterface(IID_PPV_ARGS(&chain));
+    DXGI_SWAP_CHAIN_DESC1 desc = {};
+    if (SUCCEEDED(state->result)) state->result = chain->GetDesc1(&desc);
+    if (SUCCEEDED(state->result)) {
+        if (!desc.Width || !desc.Height || state->width <= 0 || state->height <= 0) {
+            state->result = E_INVALIDARG; return;
+        }
+        // Matrix units are XAML DIPs. CompositionScale applies the final
+        // physical-pixel scaling; do not multiply it a second time here.
+        DXGI_MATRIX_3X2_F matrix = { state->width / desc.Width, 0, 0,
+            state->height / desc.Height, 0, 0 };
+        state->result = chain->SetMatrixTransform(&matrix);
+    }
+}
+// These bindings are accessed exclusively by the XAML dispatcher.
+static Microsoft::WRL::ComPtr<IDXGISwapChain> presentationChain;
+static Windows::Foundation::EventRegistrationToken panelSizeToken, panelScaleToken;
+static bool panelEventsBound = false;
+static void UpdatePanelPresentation(Windows::UI::Xaml::Controls::SwapChainPanel^ panel)
+{
+    if (!presentationChain || panel->ActualWidth <= 0 || panel->ActualHeight <= 0) return;
+    PanelAttachment state = {};
+    state.chain = presentationChain.Get();
+    state.width = float(panel->ActualWidth); state.height = float(panel->ActualHeight);
+    SampleJournal::SetOperation("IDXGISwapChain2::SetMatrixTransform");
+    if (!SampleNative::Invoke(ScalePanelNative, &state, &state.fault)) {
+        SampleJournal::WriteFault(state.fault); SampleRuntime::unsafeRuntime = true;
+        SampleAnimations::Cancel(); return;
+    }
+    SampleJournal::Write(L"Presentation fit: PanelDips=" + std::to_wstring(state.width) + L"x" +
+        std::to_wstring(state.height) + L"; CompositionScale=" + std::to_wstring(panel->CompositionScaleX) +
+        L"x" + std::to_wstring(panel->CompositionScaleY) + L"; HRESULT=" + std::to_wstring(state.result));
+    if (FAILED(state.result)) SampleAnimations::Cancel();
+}
 static void AttachNative(void* context)
 {
     auto* state = static_cast<PanelAttachment*>(context);
+    if (state->chain) {
+        ScalePanelNative(context);
+        if (FAILED(state->result)) return;
+    }
     ISwapChainPanelNative* native = nullptr;
     state->result = state->panel->QueryInterface(__uuidof(ISwapChainPanelNative), reinterpret_cast<void**>(&native));
     if (SUCCEEDED(state->result)) {
@@ -228,9 +273,27 @@ static void Attach(Windows::UI::Xaml::Controls::SwapChainPanel^ panel, IDXGISwap
     SampleJournal::Write(chain ? L"XAML attachment BEGIN" : L"XAML detachment BEGIN");
     concurrency::create_task(panel->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal,
         ref new Windows::UI::Core::DispatchedHandler([panel, retained, state]() {
+            if (panelEventsBound) {
+                panel->SizeChanged -= panelSizeToken;
+                panel->CompositionScaleChanged -= panelScaleToken;
+                panelEventsBound = false;
+            }
+            presentationChain.Reset();
+            panel->UpdateLayout();
+            state->width = float(panel->ActualWidth); state->height = float(panel->ActualHeight);
             state->panel = reinterpret_cast<IUnknown*>(panel);
             SampleJournal::SetOperation("ISwapChainPanelNative::SetSwapChain");
             state->safe = SampleNative::Invoke(AttachNative, state.get(), &state->fault);
+            if (state->safe && SUCCEEDED(state->result) && retained) {
+                presentationChain = retained;
+                panelSizeToken = panel->SizeChanged += ref new Windows::UI::Xaml::SizeChangedEventHandler(
+                    [panel](Platform::Object^, Windows::UI::Xaml::SizeChangedEventArgs^) { UpdatePanelPresentation(panel); });
+                panelScaleToken = panel->CompositionScaleChanged += ref new Windows::Foundation::TypedEventHandler<
+                    Windows::UI::Xaml::Controls::SwapChainPanel^, Platform::Object^>(
+                    [panel](Windows::UI::Xaml::Controls::SwapChainPanel^, Platform::Object^) { UpdatePanelPresentation(panel); });
+                panelEventsBound = true;
+                UpdatePanelPresentation(panel);
+            }
         }))).get();
     if (!state->safe) {
         SampleJournal::WriteFault(state->fault); SampleRuntime::unsafeRuntime = true;
@@ -243,9 +306,23 @@ static void Attach(Windows::UI::Xaml::Controls::SwapChainPanel^ panel, IDXGISwap
 
 std::vector<DiagnosticResult> SampleAnimations::Run(Animation animation,
     Windows::UI::Xaml::Controls::SwapChainPanel^ panel, HWND hwnd, HRESULT windowResult,
-    const std::wstring& tracePath)
+    const std::wstring& tracePath, int fsrPreset)
 {
     std::vector<DiagnosticResult> results;
+    const bool presetSequence = animation == Animation::Fsr3Upscaling || animation == Animation::SuperResolution;
+    if (presetSequence && fsrPreset < 0) {
+        const int presetCount = animation == Animation::SuperResolution ? 4 : 3;
+        for (int preset = 0; preset < presetCount; ++preset) {
+            auto entries = Run(animation, panel, hwnd, windowResult, tracePath, preset);
+            bool passed = !entries.empty() && entries.back().status == DiagnosticStatus::Pass;
+            for (auto& entry : entries) results.push_back(std::move(entry));
+            if (!passed || SampleRuntime::cancelled || SampleRuntime::unsafeRuntime) break;
+        }
+        SampleJournal::Write(DiagnosticReportSerializer::ToText(results));
+        const bool complete = results.size() == size_t(presetCount) && results.back().status == DiagnosticStatus::Pass;
+        SampleJournal::Close(complete ? L"PASS" : L"INCOMPLETE");
+        return results;
+    }
     SampleRuntime::window = hwnd;
     SampleRuntime::windowResult = windowResult;
     SampleRuntime::sdkCalls = SampleRuntime::generatedFrames = SampleRuntime::executeCalls =
@@ -255,15 +332,29 @@ std::vector<DiagnosticResult> SampleAnimations::Run(Animation animation,
     SampleRuntime::validLatencyReports = SampleRuntime::lastPresentDurationNs = 0;
     DiagnosticResult result;
     result.category = L"Intel SDK / Animated D3D12 samples";
+    if (animation == Animation::Fsr3FrameGeneration) result.category = L"AMD FidelityFX / Animated D3D12 samples";
+    if (animation == Animation::Fsr3Upscaling) result.category = L"AMD FidelityFX / Animated D3D12 samples";
     result.name = animation == Animation::FrameGeneration ? L"basic_sample_frame_generation" :
         animation == Animation::LowLatency ? L"basic_sample_low_latency" : L"basic_sample_super_resolution_dx12";
+    if (animation == Animation::Fsr3FrameGeneration) {
+        result.name = L"FSR3 Frame Generation 3.1.6";
+        result.details = L"Presentation=generated-only composition; no FPS/scanout improvement inferred; GeneratedFrames counts successful dispatches after history warmup. ";
+    }
+    if (animation == Animation::Fsr3Upscaling) {
+        result.name = L"FSR3 Upscaling 3.1.5 / " + std::wstring(SampleFsr3Upscale::BasicSample::PresetName(fsrPreset));
+        result.details = L"Scene=SponzaNew; Renderer=UWP-native D3D12; Camera=animated PhysCamera003; UpscaleOutput=1280x720; PresetIndex=" + std::to_wstring(fsrPreset) + L"; ";
+    }
+    if (animation == Animation::SuperResolution) {
+        result.name = L"XeSS-SR Sponza / " + std::wstring(SampleSR::BasicSampleD3D12::PresetName(fsrPreset));
+        result.details = L"Scene=SponzaNew; Renderer=UWP-native D3D12; InputResolution=runtime optimal; Output=1280x720; ";
+    }
     result.timestampUtc = DiagnosticReportSerializer::UtcNowIso8601();
-    result.details = L"PersistentTrace=" + tracePath + L"; ";
-    auto finish = [&results](DiagnosticResult&& entry) {
+    result.details += L"PersistentTrace=" + tracePath + L"; ";
+    auto finish = [&results, animation, fsrPreset](DiagnosticResult&& entry) {
         auto status = DiagnosticReportSerializer::StatusName(entry.status);
         results.push_back(std::move(entry));
         SampleJournal::Write(DiagnosticReportSerializer::ToText(results));
-        SampleJournal::Close(status.c_str());
+        if ((animation != Animation::Fsr3Upscaling && animation != Animation::SuperResolution) || fsrPreset < 0) SampleJournal::Close(status.c_str());
     };
     std::unique_lock<std::mutex> runtimeLock(IntelSdkRuntimeMutex(), std::try_to_lock);
     if (!runtimeLock.owns_lock()) {
@@ -289,9 +380,11 @@ std::vector<DiagnosticResult> SampleAnimations::Run(Animation animation,
     uint64_t frames = 0; double seconds = 0;
     std::wstring stage = L"initialization";
     try {
-        if (animation == Animation::FrameGeneration) sample.reset(new SampleFG::BasicSample(1280, 720, L"XeSS-FG"));
+        if (animation == Animation::Fsr3Upscaling) sample.reset(new SampleFsr3Upscale::BasicSample(fsrPreset));
+        else if (animation == Animation::Fsr3FrameGeneration) sample.reset(new SampleFsr3::BasicSample());
+        else if (animation == Animation::FrameGeneration) sample.reset(new SampleFG::BasicSample(1280, 720, L"XeSS-FG"));
         else if (animation == Animation::LowLatency) sample.reset(new SampleLL::BasicSample(1280, 720, L"XeLL"));
-        else sample.reset(new SampleSR::BasicSampleD3D12(1280, 720, L"XeSS-SR"));
+        else sample.reset(new SampleSR::BasicSampleD3D12(1280, 720, L"XeSS-SR Sponza", fsrPreset));
         SampleRuntime::RunStep(sample.get(), 0, "OnInit BEGIN"); initialized = true;
         SampleJournal::Write(L"OnInit END");
         {
@@ -328,6 +421,8 @@ std::vector<DiagnosticResult> SampleAnimations::Run(Animation animation,
         bool functional = frames > 1 && seconds >= 10 && !SampleRuntime::cancelled &&
             SampleRuntime::readbacks >= 2 && SampleRuntime::imageChanged && SampleRuntime::nonUniformPixels > 100;
         if (animation == Animation::FrameGeneration) functional = functional && SampleRuntime::generatedFrames > 0 && SampleRuntime::failedGeneration == 0;
+        if (animation == Animation::Fsr3FrameGeneration) functional = functional && SampleRuntime::generatedFrames > 1;
+        if (animation == Animation::Fsr3Upscaling) functional = functional && SampleRuntime::executeCalls >= frames;
         if (animation == Animation::SuperResolution) functional = functional && SampleRuntime::executeCalls >= frames;
         if (animation == Animation::LowLatency) functional = functional && SampleRuntime::sleepCalls >= frames && SampleRuntime::validLatencyReports > 0;
         result.status = functional ? DiagnosticStatus::Pass : DiagnosticStatus::Inconclusive;
@@ -392,7 +487,7 @@ std::vector<DiagnosticResult> SampleAnimations::Run(Animation animation,
     result.durationMicroseconds = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - started).count();
     result.details += L"RequestedAnimationSeconds=10; AnimationSeconds=" + std::to_wstring(seconds) +
         L"; CompletedFrameIterations=" + std::to_wstring(frames) + L"; PresentedApplicationFrames=" + std::to_wstring(SampleRuntime::presentedFrames) + L"; SDKCalls=" + std::to_wstring(SampleRuntime::sdkCalls) +
-        L"; XeSSExecuteCalls=" + std::to_wstring(SampleRuntime::executeCalls) + L"; XeLLSleepCalls=" + std::to_wstring(SampleRuntime::sleepCalls) +
+        (animation == Animation::Fsr3Upscaling ? L"; FSR3UpscaleDispatches=" : L"; XeSSExecuteCalls=") + std::to_wstring(SampleRuntime::executeCalls) + L"; XeLLSleepCalls=" + std::to_wstring(SampleRuntime::sleepCalls) +
         L"; XeLLPeakValidReportWindow=" + std::to_wstring(SampleRuntime::validLatencyReports) + L"; XeLLLastPresentDurationNs=" + std::to_wstring(SampleRuntime::lastPresentDurationNs) +
         L"; GeneratedFrames=" + std::to_wstring(SampleRuntime::generatedFrames) + L"; FGUnsuccessfulStatusFrames=" +
         std::to_wstring(SampleRuntime::failedGeneration) + L"; SDKWarnings=" + (SampleRuntime::warned ? L"yes" : L"no") +

@@ -31,5 +31,7 @@
 #define xessGetIntelXeFXVersion(...) SampleRuntime::Invoke<decltype(&::xessGetIntelXeFXVersion)>(L"libxess.dll", "xessGetIntelXeFXVersion", __VA_ARGS__)
 #define xessD3D12Init(...) SampleRuntime::Invoke<decltype(&::xessD3D12Init)>(L"libxess.dll", "xessD3D12Init", __VA_ARGS__)
 #define xessGetInputResolution(...) SampleRuntime::Invoke<decltype(&::xessGetInputResolution)>(L"libxess.dll", "xessGetInputResolution", __VA_ARGS__)
+#define xessGetOptimalInputResolution(...) SampleRuntime::Invoke<decltype(&::xessGetOptimalInputResolution)>(L"libxess.dll", "xessGetOptimalInputResolution", __VA_ARGS__)
+#define xessSetVelocityScale(...) SampleRuntime::Invoke<decltype(&::xessSetVelocityScale)>(L"libxess.dll", "xessSetVelocityScale", __VA_ARGS__)
 #define xessDestroyContext(...) SampleRuntime::Invoke<decltype(&::xessDestroyContext)>(L"libxess.dll", "xessDestroyContext", __VA_ARGS__)
 #define xessD3D12Execute(...) SampleRuntime::Invoke<decltype(&::xessD3D12Execute)>(L"libxess.dll", "xessD3D12Execute", __VA_ARGS__)

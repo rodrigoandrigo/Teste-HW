@@ -6,6 +6,7 @@
 #include "pch.h"
 #include "DirectXPage.xaml.h"
 #include "Samples/SampleJournal.h"
+#include <algorithm>
 
 using namespace Teste_HW;
 
@@ -54,7 +55,24 @@ DirectXPage::DirectXPage()
 
 void DirectXPage::RunFgSample_Click(Object^, RoutedEventArgs^) { RunSampleAnimation(Samples::Animation::FrameGeneration); }
 void DirectXPage::RunLlSample_Click(Object^, RoutedEventArgs^) { RunSampleAnimation(Samples::Animation::LowLatency); }
+void DirectXPage::RunFsr3Sample_Click(Object^, RoutedEventArgs^) { RunSampleAnimation(Samples::Animation::Fsr3FrameGeneration); }
+void DirectXPage::RunFsr3Upscale_Click(Object^, RoutedEventArgs^) { RunSampleAnimation(Samples::Animation::Fsr3Upscaling); }
 void DirectXPage::RunSrSample_Click(Object^, RoutedEventArgs^) { RunSampleAnimation(Samples::Animation::SuperResolution); }
+
+void DirectXPage::AnimationOverlay_SizeChanged(Object^, SizeChangedEventArgs^)
+{
+    UpdateAnimationLayout();
+}
+
+void DirectXPage::UpdateAnimationLayout()
+{
+    const double width = animationOverlay->ActualWidth, height = animationOverlay->ActualHeight;
+    if (width <= 0 || height <= 0) return;
+    // Fit, never crop or stretch: the diagnostic swapchains all output 16:9.
+    const double scale = (std::min)(width / 16.0, height / 9.0);
+    animationPanel->Width = 16.0 * scale;
+    animationPanel->Height = 9.0 * scale;
+}
 
 void DirectXPage::RunSampleAnimation(Samples::Animation animation)
 {
@@ -62,10 +80,19 @@ void DirectXPage::RunSampleAnimation(Samples::Animation animation)
     m_animationRunning = true;
     Samples::SampleAnimations::Begin();
     bottomAppBar->IsEnabled = false;
+    bottomAppBar->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
     animationOverlay->Visibility = Windows::UI::Xaml::Visibility::Visible;
+    UpdateAnimationLayout();
+    animationOverlay->UpdateLayout();
     const wchar_t* key = animation == Samples::Animation::FrameGeneration ? L"FG" :
-        animation == Samples::Animation::LowLatency ? L"LL" : L"SR";
+        animation == Samples::Animation::LowLatency ? L"LL" :
+        animation == Samples::Animation::Fsr3FrameGeneration ? L"FSR3" :
+        animation == Samples::Animation::Fsr3Upscaling ? L"FSR3_SR" : L"SR";
     animationStatus->Text = L"Inicializando sample " + ref new String(key) + L" (10 segundos)...";
+    if (animation == Samples::Animation::Fsr3Upscaling)
+        animationStatus->Text = L"Sponza: Native AA → Quality → Balanced (10 segundos por preset)";
+    if (animation == Samples::Animation::SuperResolution)
+        animationStatus->Text = L"Sponza XeSS: AA → Ultra Quality Plus → Quality → Balanced (10 segundos por preset)";
     std::wstring tracePath;
     try {
         tracePath = Samples::SampleJournal::Open(key);
@@ -80,6 +107,7 @@ void DirectXPage::RunSampleAnimation(Samples::Animation animation)
         Samples::SampleJournal::Close(L"FAIL");
         m_diagnosticReport->Add(std::move(result)); RefreshReportView();
         animationOverlay->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+        bottomAppBar->Visibility = Windows::UI::Xaml::Visibility::Visible;
         bottomAppBar->IsEnabled = true; m_animationRunning = false; return;
     }
     auto panel = animationPanel;
@@ -105,6 +133,7 @@ void DirectXPage::RunSampleAnimation(Samples::Animation animation)
         }
         animationOverlay->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
         bottomAppBar->IsEnabled = true;
+        bottomAppBar->Visibility = Windows::UI::Xaml::Visibility::Visible;
         m_animationRunning = false;
     }, ui);
 }

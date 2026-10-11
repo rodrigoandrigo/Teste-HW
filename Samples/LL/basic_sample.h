@@ -43,7 +43,9 @@ public:
     IDXGISwapChain3* GetSwapChain() { return m_swapChain.Get(); }
     ID3D12CommandQueue* GetQueue() override { return m_commandQueue.Get(); }
     ID3D12Device* GetDevice() override { return m_device.Get(); }
-private:
+protected:
+    bool m_useLatency = true;
+    virtual void RecordGeneratedFrame() {}
     enum DescriptorHeapIndices
     {
         DHI_Scene = 0,
