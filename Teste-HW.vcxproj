@@ -311,6 +311,32 @@
     </Content>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Import Project="Samples\SampleShaders.targets" />
+  <ItemDefinitionGroup>
+    <Link><AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies></Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="Samples\SampleAnimations.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Include="Samples\NativeGuard.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Include="Samples\SampleJournal.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClInclude Include="Samples\NativeGuard.h" />
+    <ClInclude Include="Samples\SampleJournal.h" />
+    <ClCompile Include="Samples\SR\utils.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Include="Samples\LL\basic_sample.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader><ObjectFileName>$(IntDir)SampleLL.obj</ObjectFileName></ClCompile>
+    <ClCompile Include="Samples\FG\basic_sample.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader><ObjectFileName>$(IntDir)SampleFG.obj</ObjectFileName></ClCompile>
+    <ClCompile Include="Samples\SR\basic_sample_d3d12.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClInclude Include="Samples\SampleHost.h" />
+    <ClInclude Include="Samples\SampleAnimations.h" />
+    <ClInclude Include="Samples\RuntimeCalls.h" />
+    <ClInclude Include="Samples\LL\basic_sample.h" />
+    <ClInclude Include="Samples\FG\basic_sample.h" />
+    <ClInclude Include="Samples\SR\basic_sample_d3d12.h" />
+    <ClInclude Include="Samples\SR\utils.h" />
+    <None Include="Samples\SampleShaders.targets" />
+    <None Include="basic_sample_shaders\hlsl\shader_xell.hlsl" />
+    <None Include="basic_sample_shaders\hlsl\shader_xess_fg.hlsl" />
+    <None Include="basic_sample_shaders\hlsl\shader_xess_sr_d3d12.hlsl" />
+  </ItemGroup>
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(VSINSTALLDIR)\Common7\IDE\Extensions\Microsoft\VsGraphics\ImageContentTask.targets" />
     <Import Project="$(VSINSTALLDIR)\Common7\IDE\Extensions\Microsoft\VsGraphics\MeshContentTask.targets" />

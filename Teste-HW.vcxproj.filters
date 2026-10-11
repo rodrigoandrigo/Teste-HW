@@ -158,4 +158,28 @@
   <ItemGroup>
     <None Include="Teste-HW_TemporaryKey.pfx" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Samples\SampleAnimations.cpp" />
+    <ClCompile Include="Samples\LL\basic_sample.cpp" />
+    <ClCompile Include="Samples\FG\basic_sample.cpp" />
+    <ClCompile Include="Samples\SR\basic_sample_d3d12.cpp" />
+    <ClCompile Include="Samples\SR\utils.cpp" />
+    <ClInclude Include="Samples\SampleHost.h" />
+    <ClInclude Include="Samples\SampleAnimations.h" />
+    <ClInclude Include="Samples\RuntimeCalls.h" />
+    <ClInclude Include="Samples\LL\basic_sample.h" />
+    <ClInclude Include="Samples\FG\basic_sample.h" />
+    <ClInclude Include="Samples\SR\basic_sample_d3d12.h" />
+    <ClInclude Include="Samples\SR\utils.h" />
+    <None Include="Samples\SampleShaders.targets" />
+    <None Include="basic_sample_shaders\hlsl\shader_xell.hlsl" />
+    <None Include="basic_sample_shaders\hlsl\shader_xess_fg.hlsl" />
+    <None Include="basic_sample_shaders\hlsl\shader_xess_sr_d3d12.hlsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Samples\NativeGuard.cpp" />
+    <ClCompile Include="Samples\SampleJournal.cpp" />
+    <ClInclude Include="Samples\NativeGuard.h" />
+    <ClInclude Include="Samples\SampleJournal.h" />
+  </ItemGroup>
 </Project>

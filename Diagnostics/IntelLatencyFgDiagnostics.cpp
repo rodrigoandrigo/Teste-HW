@@ -312,8 +312,9 @@ std::vector<DiagnosticResult> Run(bool frameGeneration)
             L"BuildMode=blocking; completion is reported by xefgSwapChainD3D12BuildPipelines. "
             L"Status polling applies to the non-blocking probe, which is not run here.");
         probe.Add(L"XeSS-FG proxy initialization and frame execution", DiagnosticStatus::Skipped,
-            L"SDK initialization recreates a window swap chain. The XAML-only app supplies no native window swap chain. "
-            L"No null/fabricated HWND was passed; no frames were generated or presented.");
+            L"This initialization-only probe does not create a proxy or present frames. "
+            L"Use the animated SDK samples for the real-window/proxy/presentation test. "
+            L"No null/fabricated HWND was passed here; no frames were generated or presented.");
     };
     try { work(); }
     catch (Platform::Exception^ exception)
@@ -330,6 +331,7 @@ std::vector<DiagnosticResult> Run(bool frameGeneration)
 }
 
 namespace Teste_HW { namespace Diagnostics {
+std::mutex& IntelSdkRuntimeMutex() { return probeMutex; }
 std::vector<DiagnosticResult> IntelLatencyFgDiagnostics::RunLowLatency() { return Run(false); }
 std::vector<DiagnosticResult> IntelLatencyFgDiagnostics::RunFrameGeneration() { return Run(true); }
 } }

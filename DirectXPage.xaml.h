@@ -24,6 +24,7 @@
 #include "Diagnostics\WhpxDiagnostics.h"
 #include "Diagnostics\XessDiagnostics.h"
 #include "Diagnostics\IntelLatencyFgDiagnostics.h"
+#include "Samples/SampleAnimations.h"
 
 namespace Teste_HW
 {
@@ -36,6 +37,11 @@ namespace Teste_HW
 		DirectXPage();
 
 	private:
+        void RunFgSample_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void RunLlSample_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void RunSrSample_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void RunSampleAnimation(Samples::Animation animation);
+        bool m_animationRunning = false;
 		// Outros manipuladores de eventos.
 		void RunCpuTests_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void RunComActivationTests_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);

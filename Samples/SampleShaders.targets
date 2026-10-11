@@ -1,0 +1,44 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Content Include="basic_sample_shaders\hlsl\shader_xell.hlsl.VSMainColor.cso"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="basic_sample_shaders\hlsl\shader_xell.hlsl.PSMainColor.cso"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="basic_sample_shaders\hlsl\shader_xell.hlsl.VSMainVelocity.cso"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="basic_sample_shaders\hlsl\shader_xell.hlsl.PSMainVelocity.cso"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="basic_sample_shaders\hlsl\shader_xell.hlsl.VSMainFSQ.cso"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="basic_sample_shaders\hlsl\shader_xell.hlsl.PSMainFSQ.cso"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="basic_sample_shaders\hlsl\shader_xess_fg.hlsl.VSMainColor.cso"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="basic_sample_shaders\hlsl\shader_xess_fg.hlsl.PSMainColor.cso"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="basic_sample_shaders\hlsl\shader_xess_fg.hlsl.VSMainVelocity.cso"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="basic_sample_shaders\hlsl\shader_xess_fg.hlsl.PSMainVelocity.cso"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="basic_sample_shaders\hlsl\shader_xess_fg.hlsl.VSMainFSQ.cso"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="basic_sample_shaders\hlsl\shader_xess_fg.hlsl.PSMainFSQ.cso"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="basic_sample_shaders\hlsl\shader_xess_sr_d3d12.hlsl.VSMainColor.cso"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="basic_sample_shaders\hlsl\shader_xess_sr_d3d12.hlsl.PSMainColor.cso"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="basic_sample_shaders\hlsl\shader_xess_sr_d3d12.hlsl.VSMainVelocity.cso"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="basic_sample_shaders\hlsl\shader_xess_sr_d3d12.hlsl.PSMainVelocity.cso"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="basic_sample_shaders\hlsl\shader_xess_sr_d3d12.hlsl.VSMainFSQ.cso"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="basic_sample_shaders\hlsl\shader_xess_sr_d3d12.hlsl.PSMainCopyFSQ.cso"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="basic_sample_shaders\hlsl\shader_xess_sr_d3d12.hlsl.PSMainVelocityFSQ.cso"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+  </ItemGroup>
+  <Target Name="CompileIntelSampleShaders" BeforeTargets="PrepareForBuild">
+    <Exec Command="&quot;$(WindowsSdkDir)bin\$(WindowsTargetPlatformVersion)\x64\fxc.exe&quot; /nologo /T vs_5_0 /E VSMainColor /Fo &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xell.hlsl.VSMainColor.cso&quot; &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xell.hlsl&quot;" />
+    <Exec Command="&quot;$(WindowsSdkDir)bin\$(WindowsTargetPlatformVersion)\x64\fxc.exe&quot; /nologo /T ps_5_0 /E PSMainColor /Fo &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xell.hlsl.PSMainColor.cso&quot; &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xell.hlsl&quot;" />
+    <Exec Command="&quot;$(WindowsSdkDir)bin\$(WindowsTargetPlatformVersion)\x64\fxc.exe&quot; /nologo /T vs_5_0 /E VSMainVelocity /Fo &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xell.hlsl.VSMainVelocity.cso&quot; &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xell.hlsl&quot;" />
+    <Exec Command="&quot;$(WindowsSdkDir)bin\$(WindowsTargetPlatformVersion)\x64\fxc.exe&quot; /nologo /T ps_5_0 /E PSMainVelocity /Fo &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xell.hlsl.PSMainVelocity.cso&quot; &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xell.hlsl&quot;" />
+    <Exec Command="&quot;$(WindowsSdkDir)bin\$(WindowsTargetPlatformVersion)\x64\fxc.exe&quot; /nologo /T vs_5_0 /E VSMainFSQ /Fo &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xell.hlsl.VSMainFSQ.cso&quot; &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xell.hlsl&quot;" />
+    <Exec Command="&quot;$(WindowsSdkDir)bin\$(WindowsTargetPlatformVersion)\x64\fxc.exe&quot; /nologo /T ps_5_0 /E PSMainFSQ /Fo &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xell.hlsl.PSMainFSQ.cso&quot; &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xell.hlsl&quot;" />
+    <Exec Command="&quot;$(WindowsSdkDir)bin\$(WindowsTargetPlatformVersion)\x64\fxc.exe&quot; /nologo /T vs_5_0 /E VSMainColor /Fo &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_fg.hlsl.VSMainColor.cso&quot; &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_fg.hlsl&quot;" />
+    <Exec Command="&quot;$(WindowsSdkDir)bin\$(WindowsTargetPlatformVersion)\x64\fxc.exe&quot; /nologo /T ps_5_0 /E PSMainColor /Fo &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_fg.hlsl.PSMainColor.cso&quot; &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_fg.hlsl&quot;" />
+    <Exec Command="&quot;$(WindowsSdkDir)bin\$(WindowsTargetPlatformVersion)\x64\fxc.exe&quot; /nologo /T vs_5_0 /E VSMainVelocity /Fo &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_fg.hlsl.VSMainVelocity.cso&quot; &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_fg.hlsl&quot;" />
+    <Exec Command="&quot;$(WindowsSdkDir)bin\$(WindowsTargetPlatformVersion)\x64\fxc.exe&quot; /nologo /T ps_5_0 /E PSMainVelocity /Fo &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_fg.hlsl.PSMainVelocity.cso&quot; &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_fg.hlsl&quot;" />
+    <Exec Command="&quot;$(WindowsSdkDir)bin\$(WindowsTargetPlatformVersion)\x64\fxc.exe&quot; /nologo /T vs_5_0 /E VSMainFSQ /Fo &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_fg.hlsl.VSMainFSQ.cso&quot; &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_fg.hlsl&quot;" />
+    <Exec Command="&quot;$(WindowsSdkDir)bin\$(WindowsTargetPlatformVersion)\x64\fxc.exe&quot; /nologo /T ps_5_0 /E PSMainFSQ /Fo &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_fg.hlsl.PSMainFSQ.cso&quot; &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_fg.hlsl&quot;" />
+    <Exec Command="&quot;$(WindowsSdkDir)bin\$(WindowsTargetPlatformVersion)\x64\fxc.exe&quot; /nologo /T vs_5_0 /E VSMainColor /Fo &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_sr_d3d12.hlsl.VSMainColor.cso&quot; &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_sr_d3d12.hlsl&quot;" />
+    <Exec Command="&quot;$(WindowsSdkDir)bin\$(WindowsTargetPlatformVersion)\x64\fxc.exe&quot; /nologo /T ps_5_0 /E PSMainColor /Fo &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_sr_d3d12.hlsl.PSMainColor.cso&quot; &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_sr_d3d12.hlsl&quot;" />
+    <Exec Command="&quot;$(WindowsSdkDir)bin\$(WindowsTargetPlatformVersion)\x64\fxc.exe&quot; /nologo /T vs_5_0 /E VSMainVelocity /Fo &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_sr_d3d12.hlsl.VSMainVelocity.cso&quot; &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_sr_d3d12.hlsl&quot;" />
+    <Exec Command="&quot;$(WindowsSdkDir)bin\$(WindowsTargetPlatformVersion)\x64\fxc.exe&quot; /nologo /T ps_5_0 /E PSMainVelocity /Fo &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_sr_d3d12.hlsl.PSMainVelocity.cso&quot; &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_sr_d3d12.hlsl&quot;" />
+    <Exec Command="&quot;$(WindowsSdkDir)bin\$(WindowsTargetPlatformVersion)\x64\fxc.exe&quot; /nologo /T vs_5_0 /E VSMainFSQ /Fo &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_sr_d3d12.hlsl.VSMainFSQ.cso&quot; &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_sr_d3d12.hlsl&quot;" />
+    <Exec Command="&quot;$(WindowsSdkDir)bin\$(WindowsTargetPlatformVersion)\x64\fxc.exe&quot; /nologo /T ps_5_0 /E PSMainCopyFSQ /Fo &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_sr_d3d12.hlsl.PSMainCopyFSQ.cso&quot; &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_sr_d3d12.hlsl&quot;" />
+    <Exec Command="&quot;$(WindowsSdkDir)bin\$(WindowsTargetPlatformVersion)\x64\fxc.exe&quot; /nologo /T ps_5_0 /E PSMainVelocityFSQ /Fo &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_sr_d3d12.hlsl.PSMainVelocityFSQ.cso&quot; &quot;$(ProjectDir)basic_sample_shaders\hlsl\shader_xess_sr_d3d12.hlsl&quot;" />
+  </Target>
+</Project>

@@ -8,9 +8,9 @@ The application performs functional probes rather than relying only on DLL prese
 
 ## Target
 
-The interface uses XAML only, without a custom D3D11 renderer, swap chain,
-render thread, or FPS overlay. Xbox layout scaling is disabled at launch.
-Graphics devices are created only by the diagnostic suites when requested.
+The interface uses XAML, without a D3D11 renderer or FPS overlay. Xbox layout
+scaling is disabled at launch. Graphics devices and temporary D3D12 swapchains
+are created only when a diagnostic suite or an animated SDK sample is requested.
 
 - UWP/AppContainer
 - Xbox Series consoles in Developer Mode
@@ -268,9 +268,9 @@ pipeline status query is explicitly skipped after the Xbox runtime returned
 FG is destroyed before XeLL. Failed teardown retains dependencies to avoid
 unloading code still owned by a context.
 
-Proxy initialization and frame execution are explicitly skipped: the SDK
-recreates a native window swap chain, while this application has a XAML-only
-interface. No D3D11 renderer is restored. Both suite completions remain
+Proxy initialization and frame execution are explicitly skipped by these
+initialization-only probes; use the separate animated sample sequence below
+to attempt presentation. No D3D11 renderer is restored. Both suite completions remain
 `INCONCLUSIVE` if their probes succeed, or reflect actual failures; they never
 claim verified latency reduction or generated frames. Exact SDK result codes,
 HRESULT/Win32 errors, and per-call durations are exported. Tests run in the
@@ -288,7 +288,113 @@ background and are serialized because the SDK allows only one proxy context.
 
 Suite-completion entries aggregate the status of their preceding stages. Inspect the first blocked or failed stage for the useful error code.
 XeLL and XeSS-FG completions remain `INCONCLUSIVE` when all implemented probes
-pass because actual latency reduction and frame generation have not been tested.
+pass because those initialization-only probes do not test actual latency
+reduction or frame generation. Animated samples have separate results.
+
+## Animated XeSS SDK samples
+
+Each sample traces baseline D3D12 device creation with the default adapter
+(the same adapter/feature-level arguments used by the DirectML probe) and
+explicit hardware adapters before changing debug-layer configuration. It also
+records `D3D12GetDebugInterface`, debug-layer enablement, DXGI factory flags,
+and default-adapter creation after configuration. Successful probe devices
+report their adapter LUID and `GetDeviceRemovedReason`; failed creation cannot
+provide a device-removal reason when no device was returned. Baseline devices
+are released before debug-layer enablement. The baseline does not guarantee
+that the process debug layer was previously disabled, and these probes do not
+execute a DirectML workload. Use a freshly restarted app for comparison.
+
+The SDK 3.0.2 scenes have independent buttons; each runs only its selected sample:
+
+1. **Sample XeSS-FG (10s)** / `basic_sample_frame_generation`: renders color, depth and motion vectors,
+   tags resources/constants, enables XeLL pacing and XeSS-FG interpolation,
+   presents through the SDK proxy and queries each last-present status.
+2. **Sample XeLL (10s)** / `basic_sample_low_latency`: renders the SDK scene with low-latency sleep,
+   simulation/render/present markers and frame-report queries.
+3. **Sample XeSS-SR DX12 (10s)** / `basic_sample_super_resolution_dx12`: renders the jittered, lower-resolution
+   SDK scene, executes XeSS-SR and displays the upscaled output.
+
+Each successfully initialized scene runs for **10 seconds**. Initialization,
+pipeline compilation and teardown are outside that animation interval, so the
+selected test can take longer than 10 seconds. An initialization failure records
+`BLOCKED` with the exact HRESULT/Win32 or numeric SDK result; it cannot run a
+fictitious ten-second animation. No other sample starts automatically.
+
+All three samples attempt to use composition swapchains attached to a temporary XAML panel.
+FG creates its input with `CreateSwapChainForComposition`, transfers ownership
+to `xefgSwapChainD3D12InitFromSwapChain`, and attaches the SDK-returned swapchain
+to XAML if initialization succeeds. The app no longer requires a CoreWindow HWND
+or directly creates an HWND swapchain. However, the SDK internally releases the
+input swapchain and recreates one for its underlying window. The Xbox trace
+confirmed that this internal HWND path rejects the composition swapchain before
+XAML attachment. SDK initialization and attachment failures are recorded
+separately; context creation alone is not successful frame generation.
+
+FG traces include every `DXGI_SWAP_CHAIN_DESC1` field, `GetHwnd` and
+`GetFullscreenDesc` results, and initialization flags/heap pointers. Around SDK
+initialization it captures new D3D12/DXGI info-queue messages (up to 64 per queue,
+using existing retrieval filters). Debug-interface availability and HRESULTs are
+recorded; absence of messages does not prove that the SDK call is valid.
+`DXGIGetDebugInterface1` is resolved dynamically from the loaded DXGI module,
+without adding a required debug-DLL import. The original SDK failure is retained.
+
+Results are added immediately after each sample finishes and are included in
+TXT/JSON exports. They include elapsed animation time, application frame count,
+XeSS execute/XeLL sleep calls, generated-frame count, SDK warnings, output
+readbacks and GPU-drain status. The application output is read back near 0, 1,
+and 9 seconds; hashes and nonuniform pixel counts check that rendered content
+exists and changes. GPU fences have a five-second timeout. This is not a
+pixel-perfect image-quality comparison or proof of physical display scanout.
+
+`PASS` requires the full interval, changing/nonuniform GPU output, successful
+presentation and teardown, plus executed upscaling, active XeLL sleep with
+completed timing reports, or
+reported generated frames as appropriate. It does **not** prove latency
+improvement; that requires external input-to-display measurements. Suspension,
+hidden-window/unload cancellation or absent generated frames is not a pass.
+Native faults, GPU timeouts/device loss or cleanup failure retain potentially
+in-flight resources and block further samples until the application is restarted.
+The SDK probe/sample paths share a lock to prevent simultaneous FG contexts.
+
+Sources are adapted under `Samples/LL`, `Samples/FG` and `Samples/SR`.
+Scene HLSL is compiled offline by `Samples/SampleShaders.targets` and the
+19 shader blobs are packaged, avoiding desktop file-based runtime compilation.
+The sibling SDK remains required for its headers, helper header and runtimes.
+The SDK source copyright notices and packaged license notices are retained.
+Build/package verification is separate from running the animations on Xbox.
+
+### Persistent crash evidence
+
+Before graphics or SDK initialization, each button opens a UTF-8, write-through
+trace in the app's LocalState folder:
+
+- `XeSS_sample_FG_trace.txt`
+- `XeSS_sample_LL_trace.txt`
+- `XeSS_sample_SR_trace.txt`
+
+Traces are appended, not overwritten, and checkpoints are flushed synchronously.
+They include initialization stages, DLL base addresses, SDK entry/return codes,
+the first rendered frame, one-second progress, readbacks, cleanup and the final
+result. Recoverable calling-thread native exceptions record their SEH code,
+instruction address and access parameters. Cleanup is not retried after an
+unsuccessful destroy. The FG cleanup now checks for an already released swapchain.
+SDK DLLs are cached for the process lifetime rather than unloaded between
+samples, avoiding DLL-detach races with SDK/driver callbacks; successful tests
+still destroy their contexts and graphics resources.
+
+An optional dynamically resolved vectored exception observer records native
+first-chance faults, including on SDK threads, but never suppresses those faults.
+`FIRST_CHANCE` does not mean a fatal crash: a library may handle that exception.
+This observer is not assumed available on Xbox. Calling-thread SEH protection
+remains independent of it. Fail-fast, stack overflow, OS termination or a fault
+on an SDK-owned thread may still close the process; the last flushed checkpoint
+remains the available evidence, not necessarily a complete crash diagnosis.
+
+On next launch, the last 64 KiB of each trace is imported into the report.
+An absent final `RUN END` is marked inconclusive/interrupted. Export TXT or JSON
+after reopening the app to retrieve that recovered evidence, or download the
+trace files directly from LocalState through Device Portal. The current trace
+path is also included in each sample result.
 
 ## Building
 
@@ -379,9 +485,42 @@ The SDK distribution is named 3.0.2; runtime API versions are queried separately
 
 | Runtime | Version reported by API | Confirmed operations | Still untested |
 |---|---|---|---|
-| XeSS-SR (`libxess.dll`) | 2.0.2 | Loading, export resolution, D3D12 device, Shader Model 6.4, context creation, driver check, 1080p Performance initialization and teardown | `xessD3D12Execute`, GPU completion, output readback and image quality |
-| XeLL (`libxell.dll`) | 1.3.2 | Context creation, sleep-mode configuration/readback, pass-through sleep, synthetic simulation markers, frame-report query and teardown | Effective latency reduction with rendered/presented frames |
-| XeSS-FG (`libxess_fg.dll`) | 1.3.1 | Context creation, XeLL binding, resource queries, blocking pipeline compilation and teardown | Proxy swap-chain initialization, interpolation and presentation |
+| XeSS-SR (`libxess.dll`) | 2.0.2 | Initialization probes; 10-second animation, 570 execute/present calls, three changing GPU readbacks and teardown at 1280x720 | Pixel-perfect image quality and physical scanout |
+| XeLL (`libxell.dll`) | 1.3.2 | Initialization probes; 10-second animation, 557 sleep/present calls, valid timing reports, three changing GPU readbacks and teardown | Measured input-to-display latency improvement |
+| XeSS-FG (`libxess_fg.dll`) | 1.3.1 | Context creation, XeLL binding, resource queries, blocking pipeline compilation and teardown | Animation is BLOCKED at internal swapchain creation; interpolation and presentation remain untested |
+
+### Animated Xbox results and XeSS-FG presentation limitation
+
+`Teste-HW_20261011_134655_UTC.txt` and the accompanying SR/LL traces confirm
+`PASS` for SR (10.016 seconds, 570 frames) and LL (10.006 seconds, 557 frames).
+Both produced changing, nonuniform GPU readbacks and completed GPU draining.
+These are functional results, not image-quality or latency-improvement benchmarks.
+
+The FG trace ending at `2026-10-11T14:01:08.381Z` confirms successful D3D12,
+composition-swapchain and context creation, followed by
+`xefgSwapChainD3D12InitFromSwapChain` returning `-18`
+(`XEFG_SWAPCHAIN_RESULT_ERROR_DXGI_INVALID_CALL`). New DXGI debug messages during
+the SDK call report HWND-only `GetHwnd`/`GetFullscreenDesc` queries and an internal
+`CreateSwapChain` call without a target window (`0x887A0001`). The earlier direct
+HWND initialization path returned access denied (`0x80070005`, SDK result `-17`).
+No frames were generated; cleanup succeeded without a crash.
+
+Inspection of the SDK 3.0.2 public headers, guide and DLL export table found no
+documented flag to preserve the input swapchain or an API to generate frames into
+an application-owned texture without SDK-controlled presentation. Both documented
+initialization paths create a swapchain for a window. `SetUiCompositionState`
+controls HUD composition, not XAML/UWP presentation. Undocumented exports such as
+`xefgSwapChainSetParameterP` have no supplied ABI or parameter contract and are not
+treated as usable alternatives. See the [Intel initialization guide](https://github.com/intel/xess/blob/main/doc/xess_fg_developer_guide_english.md#initialization)
+and the matching guide in the local SDK distribution.
+
+A presentation-decoupled API would accept frame textures, motion vectors, depth
+and camera/frame constants, and write interpolation output to a D3D12 texture;
+the app would synchronize and present it through its UWP composition swapchain.
+This is a desired integration model, not an API exposed by the inspected SDK.
+Supporting it requires a suitable Intel API/runtime or modifiable implementation
+source. The distributed DLL implementation source is absent; sample sources do
+not provide the internal presentation layer. The SDK binary remains unmodified.
 
 The original XeSS loader failure (`ERROR_MOD_NOT_FOUND`, 126) was resolved by
 bundling the three Release OneCore Visual C++ runtime DLLs. The corrected
@@ -399,9 +538,9 @@ interpolation and the following 1080p resource requirements:
 - 8,978,432 bytes of constant buffer storage.
 
 These are queried requirements, not measured total GPU memory consumption.
-The latest blocking FG pipeline build completed in 7.34 seconds; the entire
+The earlier initialization-only blocking FG pipeline build completed in 7.34 seconds; the entire
 probe took 7.39 seconds. These timings do not measure per-frame performance.
-The latest report contains 41 `PASS`, two `SKIPPED`, one `INCONCLUSIVE`, and
+That earlier initialization-only report contains 41 `PASS`, two `SKIPPED`, one `INCONCLUSIVE`, and
 no `FAIL` or `BLOCKED` results. The pipeline-status query is deliberately skipped
 after the blocking build: an earlier run returned `ERROR_WRONG_CALL_ORDER`
 for that subsequent query. Non-blocking compilation and polling remain untested.

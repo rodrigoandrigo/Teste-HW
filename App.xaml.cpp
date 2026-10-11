@@ -29,6 +29,7 @@ using namespace Windows::UI::Xaml::Navigation;
 App::App()
 {
 	InitializeComponent();
+    Suspending += ref new SuspendingEventHandler([](Object^, SuspendingEventArgs^) { Samples::SampleAnimations::Cancel(); });
 }
 
 /// <summary>

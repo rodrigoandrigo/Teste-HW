@@ -36,11 +36,21 @@
                ScrollViewer.VerticalScrollBarVisibility="Auto"
                ScrollViewer.HorizontalScrollBarVisibility="Auto" />
     </Grid>
+    <Grid x:Name="animationOverlay" Visibility="Collapsed" Background="Black">
+      <SwapChainPanel x:Name="animationPanel" />
+      <TextBlock x:Name="animationStatus" Margin="24" VerticalAlignment="Top" Foreground="White" FontSize="24" />
+    </Grid>
   </Grid>
 
   <Page.BottomAppBar>
     <AppBar x:Name="bottomAppBar" Padding="10,0,10,0">
+      <ScrollViewer HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto"
+                    VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled"
+                    MaxWidth="{Binding ActualWidth, ElementName=bottomAppBar}">
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+        <AppBarButton Label="Sample XeSS-FG (10s)" Icon="Play" Click="RunFgSample_Click" />
+        <AppBarButton Label="Sample XeLL (10s)" Icon="Play" Click="RunLlSample_Click" />
+        <AppBarButton Label="Sample XeSS-SR DX12 (10s)" Icon="Play" Click="RunSrSample_Click" />
         <AppBarButton Label="Testar CPU"
                       Icon="Play"
                       Click="RunCpuTests_Click" />
@@ -90,6 +100,7 @@
                       Icon="Delete"
                       Click="ClearResults_Click" />
       </StackPanel>
+      </ScrollViewer>
     </AppBar>
   </Page.BottomAppBar>
 </Page>
