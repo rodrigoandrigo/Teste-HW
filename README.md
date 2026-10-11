@@ -299,8 +299,10 @@ composition matrix maps the fixed-size backbuffer to the panel's XAML dimensions
 panel size/composition-scale changes refresh that matrix. The command bar is
 hidden during playback, and the app requests CoreWindow rather than visible-area
 bounds on Xbox. `Presentation fit` trace entries record panel dimensions,
-composition scale and the matrix-update HRESULT. Actual TV/Xbox layout still
-requires device-side verification.
+composition scale and the matrix-update HRESULT. The October 11 Xbox XeSS-SR
+trace confirms successful mapping of 1280x720 output to a 1920x1080 XAML panel
+with composition scale 1.0. Other window sizes/scales and visual TV cropping
+still require device-side verification.
 
 ## FSR3 Upscaling 3.1.5 standalone sample
 
@@ -428,10 +430,14 @@ The SDK 3.0.2 scenes have independent buttons; each runs only its selected sampl
    `Samples/tests/RunXessSponzaTests.cmd` checks three animated offscreen frames per
    preset using the packaged XeSS DLL, fences/readbacks and D3D12 validation.
    Locally the runtime returned AA=1280x720, Ultra Quality Plus=985x554,
-   Quality=753x424 and Balanced=640x360; Xbox/runtime results may differ.
-   This is not an installed UWP/Xbox presentation test.
+   Quality=753x424 and Balanced=640x360. The subsequent target-console trace
+   confirmed the same dimensions and all four complete 10-second stages; see
+   the Sponza Xbox results below. Other runtime/device configurations may differ.
+   The native test itself is not an installed UWP/Xbox presentation test.
 
-Each successfully initialized scene runs for **10 seconds**. Initialization,
+Each successfully initialized scene/preset runs for **10 seconds**. The XeSS-SR
+sequence contains 40 rendering seconds, and the FSR3-SR sequence contains 30.
+Initialization,
 pipeline compilation and teardown are outside that animation interval, so the
 selected test can take longer than 10 seconds. An initialization failure records
 `BLOCKED` with the exact HRESULT/Win32 or numeric SDK result; it cannot run a
@@ -605,6 +611,40 @@ The SDK distribution is named 3.0.2; runtime API versions are queried separately
 | XeSS-SR (`libxess.dll`) | 2.0.2 | Initialization probes; 10-second animation, 570 execute/present calls, three changing GPU readbacks and teardown at 1280x720 | Pixel-perfect image quality and physical scanout |
 | XeLL (`libxell.dll`) | 1.3.2 | Initialization probes; 10-second animation, 557 sleep/present calls, valid timing reports, three changing GPU readbacks and teardown | Measured input-to-display latency improvement |
 | XeSS-FG (`libxess_fg.dll`) | 1.3.1 | Context creation, XeLL binding, resource queries, blocking pipeline compilation and teardown | Animation is BLOCKED at internal swapchain creation; interpolation and presentation remain untested |
+
+### Sponza XeSS-SR Xbox preset sequence confirmed on October 11, 2026
+
+The target-console `XeSS_sample_SR_trace.txt` run from
+`2026-10-11T17:29:12.013Z` to `2026-10-11T17:29:58.014Z` completed with
+`RUN END PASS`. These are newer Sponza results, distinct from the earlier
+triangle animation above. All presets use 1280x720 output.
+
+| Preset | Runtime-selected input | Rendering time | Execute/present calls | Result |
+|---|---|---|---|---|
+| AA | 1280x720 | 10.004129 s | 597 / 597 | PASS |
+| Ultra Quality Plus | 985x554 | 10.015152 s | 600 / 600 | PASS |
+| Quality | 753x424 | 10.007646 s | 597 / 597 | PASS |
+| Balanced | 640x360 | 10.016233 s | 598 / 598 | PASS |
+
+The sequence completed 40.043160 rendering seconds and 2,392 execute/present
+calls, with roughly 46 seconds wall time including initialization and teardown.
+Every stage recorded three changing, nonuniform GPU output readbacks,
+`SDKWarnings=no` and `GPUDrained=yes`. Context creation, initialization,
+optimal-resolution queries, UV velocity scaling and destruction succeeded.
+The trace records low-resolution motion vectors, reversed depth and a fresh
+temporal history for each preset.
+
+Presentation attachment and matrix updates succeeded for a 1920x1080 XAML
+panel with composition scale 1.0, while actual rendered output remained
+1280x720. This confirms the API-side presentation sizing path, not an independent
+measurement of TV scanout, overscan or visual aspect correctness.
+
+Approximately 60 application presentations per second do not establish a speed
+advantage for any preset: the sample uses synchronized presentation and includes
+readback overhead. These results validate this device/package's full functional
+sequence, not pixel-perfect reconstruction, absence of ghosting, GPU execution
+cost or input-to-display latency. No SDK version is inferred solely from the
+SDK distribution's 3.0.2 name.
 
 ### Animated Xbox results and XeSS-FG presentation limitation
 
